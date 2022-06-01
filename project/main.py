@@ -27,8 +27,8 @@ def train():
 
     data_module = WalkDataModule(opt)
 
-    # tb_logger = pl_loggers.TensorBoardLogger(save_dir="logs")
-    trainer = pytorch_lightning.Trainer(accelerator="gpu", devices=1, max_epochs=100)
+    tb_logger = pl_loggers.TensorBoardLogger(save_dir='lightning_logs', version=opt.model_type)
+    trainer = pytorch_lightning.Trainer(accelerator="gpu", devices=2, max_epochs=100, logger=tb_logger, log_every_n_steps=10)
     trainer.fit(classification_module, data_module)
 
 # %%

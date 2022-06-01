@@ -9,7 +9,6 @@ from pytorch_lightning import LightningModule
 import pytorch_lightning
 import os 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # %%
 # %cd /workspace/Walk_Video_PyTorch/project/
 
@@ -73,6 +72,8 @@ class WalkVideoClassificationLightningModule(LightningModule):
 from torchinfo import summary
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
     classification_module = WalkVideoClassificationLightningModule(model_type='resnet')
 
     batch_size = 16
