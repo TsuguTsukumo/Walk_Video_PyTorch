@@ -1,4 +1,6 @@
 # %%
+from torchinfo import summary
+import string
 import pytorchvideo.models as models
 import torch
 import torch.nn as nn
@@ -7,42 +9,50 @@ import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule
 import pytorch_lightning
-import os 
+import os
 
 # %%
 # %cd /workspace/Walk_Video_PyTorch/project/
 
 # %%
-def make_walk_resnet():
+
+
+def make_walk_resnet(model_class_num: int):
     return models.resnet.create_resnet(
-        input_channel = 3, 
-        model_depth = 50, 
-        model_num_class = 2, 
-        norm = nn.BatchNorm3d,
+        input_channel=3,
+        model_depth=50,
+        model_num_class=model_class_num,
+        norm=nn.BatchNorm3d,
         activation=nn.ReLU,
     )
 
 # %%
-def make_walk_csn():
+
+
+def make_walk_csn(model_class_num: int):
     return models.create_csn(
-        input_channel= 3,
+        input_channel=3,
         model_depth=50,
-        model_num_class=2,
+        model_num_class=model_class_num,
         norm=nn.BatchNorm3d,
         activation=nn.ReLU,
-
-)
+    )
 # %%
-class WalkVideoClassificationLightningModule(LightningModule):
-    def __init__(self, model_type: str):
-        super().__init__()
-        
-        if model_type == 'resnet':
-            self.model = make_walk_resnet()
-        elif model_type == 'csn':
-            self.model = make_walk_csn()
 
-        self.model_type = model_type
+class WalkVideoClassificationLightningModule(LightningModule):
+    def __init__(self, hparams):
+        super().__init__()
+
+        # return model type name
+        self.model_type = hparams.model
+
+        self.lr = hparams.lr
+        self.model_class_num = hparams.model_class_num
+
+        if self.model_type == 'resnet':
+            self.model = make_walk_resnet(self.model_class_num)
+        elif self.model_type == 'csn':
+            self.model = make_walk_csn(self.model_class_num)
 
     def forward(self, x):
         return self.model(x)
@@ -63,13 +73,13 @@ class WalkVideoClassificationLightningModule(LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=1e-1)
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
 
     def _get_name(self):
         return self.model_type
 
+
 # %%
-from torchinfo import summary
 
 if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"

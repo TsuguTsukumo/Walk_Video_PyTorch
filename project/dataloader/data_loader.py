@@ -1,13 +1,33 @@
 
 # %%
+import matplotlib.pylab as plt
+from torchvision.transforms import (
+    Compose,
+    Lambda,
+    RandomCrop,
+    RandomHorizontalFlip
+)
+from pytorchvideo.transforms import (
+    ApplyTransformToKey,
+    Normalize,
+    RandomShortSideScale,
+    RemoveKey,
+    ShortSideScale,
+    UniformTemporalSubsample
+)
+from random import random
 from typing import Any, Callable, Dict, Optional, Type
 from pytorch_lightning import LightningDataModule
+import os
 
-import torch 
+import torch
+from torch.utils.data import DataLoader
 import pytorchvideo
 from pytorchvideo.data.clip_sampling import ClipSampler
 
 from pytorchvideo.data.labeled_video_dataset import LabeledVideoDataset, labeled_video_dataset
+
+from utils.utils import random_split_video
 
 
 # %%
@@ -48,38 +68,20 @@ def WalkDataset(
 
 
 # %%
-from pytorchvideo.transforms import (
-    ApplyTransformToKey,
-    Normalize,
-    RandomShortSideScale,
-    RemoveKey,
-    ShortSideScale,
-    UniformTemporalSubsample
-)
 
-from torchvision.transforms import (
-    Compose,
-    Lambda,
-    RandomCrop,
-    RandomHorizontalFlip
-)
-
-# %%
 class WalkDataModule(LightningDataModule):
     def __init__(self, opt):
         super().__init__()
-        self._DATA_PATH = opt._DATA_PATH
-        self._CLIP_DURATION = opt._CLIP_DURATION
-        self._BATCH_SIZE = opt._BATCH_SIZE
-        self._NUM_WORKERS = opt._NUM_WORKERS
-    
-    def train_dataloader(self):
-        '''
-        create the Walk train partition from the list of video labels 
-        in directory and subdirectory. Add transform that subsamples and 
-        normalizes the video before applying the scale, crop and flip augmentations.
-        '''        
-        train_transform = Compose(
+        self._DATA_PATH = opt.data_path
+        self._SPLIT_DATA_PATH = opt.split_data_path
+        self._CLIP_DURATION = opt.clip_duration
+
+        self._BATCH_SIZE = opt.batch_size
+        self._NUM_WORKERS = opt.num_workers
+
+        self._IMG_SIZE = opt.img_size
+
+        self.transform = Compose(
             [
                 ApplyTransformToKey(
                     key="video",
@@ -97,67 +99,109 @@ class WalkDataModule(LightningDataModule):
             ]
         )
 
-        train_dataset = WalkDataset(
-            data_path=self._DATA_PATH,
-            clip_sampler=pytorchvideo.data.make_clip_sampler("random", self._CLIP_DURATION),
-            transform=train_transform
+    def prepare_data(self) -> None:
+        
+        # split meta dataset random to tar file path
+        random_split_video(
+            fileDir=self._DATA_PATH,
+            tarDir=self._SPLIT_DATA_PATH,
+            rate=0.8,
+            disease_flag=("ASD", "LCS")
         )
+        print("success split dataset to " + str(self._SPLIT_DATA_PATH))
+        
+    def setup(self, stage: Optional[str] = None) -> None:
+        '''
+        assign tran, val, predict datasets for use in dataloaders
 
-        return torch.utils.data.DataLoader(
-            train_dataset,
-            batch_size = self._BATCH_SIZE,
-            num_workers = self._NUM_WORKERS,
-        )
+        Args:
+            stage (Optional[str], optional): trainer.stage, in ('fit', 'validate', 'test', 'predict'). Defaults to None.
+        '''        
 
-    def val_dataloader(self):
+        # if stage == "fit" or stage == None:
+        if stage in ("fit", None):
+            self.train_dataset = WalkDataset(
+                data_path=os.path.join(self._SPLIT_DATA_PATH, "train"),
+                clip_sampler=pytorchvideo.data.make_clip_sampler("random", self._CLIP_DURATION),
+                transform=self.transform
+            )
+
+        if stage in ("fit", "validate", "test", None):
+            self.val_test_dataset = WalkDataset(
+                data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
+                clip_sampler=pytorchvideo.data.make_clip_sampler("uniform", self._CLIP_DURATION),
+                transform=self.transform
+            )
+
+        if stage in ("predict", None):
+            self.pred_dataset = WalkDataset(
+                data_path=os.path.join(self._SPLIT_DATA_PATH, "predict"),
+                clip_sampler=pytorchvideo.data.make_clip_sampler("random", self._CLIP_DURATION),
+                transform=self.transform
+            )
+
+    def train_dataloader(self) -> DataLoader:
         '''
         create the Walk train partition from the list of video labels 
         in directory and subdirectory. Add transform that subsamples and 
         normalizes the video before applying the scale, crop and flip augmentations.
-        '''        
-        val_transform = Compose(
-            [
-                ApplyTransformToKey(
-                    key="video",
-                    transform=Compose(
-                        [
-                            UniformTemporalSubsample(8),
-                            Lambda(lambda x: x / 255.0),
-                            Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
-                            RandomShortSideScale(min_size=256, max_size=320),
-                            RandomCrop(244),
-                            RandomHorizontalFlip(p=0.5),
-                        ]
-                    ),
-                ),
-            ]
+        '''
+
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self._BATCH_SIZE,
+            num_workers=self._NUM_WORKERS,
         )
 
-        train_dataset = WalkDataset(
-            data_path=self._DATA_PATH,
-            clip_sampler=pytorchvideo.data.make_clip_sampler("uniform", self._CLIP_DURATION),
-            transform=val_transform
+    def val_dataloader(self) -> DataLoader:
+        '''
+        create the Walk train partition from the list of video labels 
+        in directory and subdirectory. Add transform that subsamples and 
+        normalizes the video before applying the scale, crop and flip augmentations.
+        '''
+
+        return DataLoader(
+            self.val_test_dataset,
+            batch_size=self._BATCH_SIZE,
+            num_workers=self._NUM_WORKERS,
         )
 
-        return torch.utils.data.DataLoader(
-            train_dataset,
-            batch_size = self._BATCH_SIZE,
-            num_workers = self._NUM_WORKERS,
+    def test_dataloader(self) -> DataLoader:
+        return DataLoader(
+            self.val_test_dataset,
+            batch_size=self._BATCH_SIZE,
+            num_workers=self._NUM_WORKERS,
+        )
+
+    def predict_dataloader(self) -> DataLoader:
+        '''
+        create the Walk pred partition from the list of video labels 
+        in directory and subdirectory. Add transform that subsamples and 
+        normalizes the video before applying the scale, crop and flip augmentations.
+        '''
+
+        return DataLoader(
+            self.pred_dataset,
+            batch_size=self._BATCH_SIZE,
+            num_workers=self._NUM_WORKERS,
         )
 
 
 # %%
-import matplotlib.pylab as plt 
-
 if __name__ == '__main__':
     class opt:
-        _DATA_PATH = "/workspace/data/dataset/train"
+        _DATA_PATH = "/workspace/data/handle_video/" # meta dataset path
+        _SPLIT_DATA_PATH = "/workspace/data/dataset/" # traing dataset path 
         _CLIP_DURATION = 2 # Duration of sampled clip for each video
-        _BATCH_SIZE = 10
-        _NUM_WORKERS = 0  # Number of parallel processes fetching data
+        _BATCH_SIZE = 8
+        _NUM_WORKERS = 2 # Number of parallel processes fetching data
+        model_type = 'csn'  # Number of parallel processes fetching data
 
-    train_data_loader = WalkDataModule(opt).train_dataloader()
-    val_data_loader = WalkDataModule(opt).val_dataloader()
+    dm = WalkDataModule(opt)
+    dm.prepare_data()
+    dm.setup()
+
+    train_data_loader = dm.train_dataloader()
 
     data = {"video": [], "class": [], 'tensorsize': []}
 
@@ -173,8 +217,8 @@ if __name__ == '__main__':
 
     plt.figure(figsize=(12, 12))
 
-    for num in range(len(batch['video_index'])): # batch size
-        for i in range(batch['video'].size()[2]): # 帧数
+    for num in range(len(batch['video_index'])):  # batch size
+        for i in range(batch['video'].size()[2]):  # 帧数
             plt.title(batch['video_name'][num])
             plt.subplot(len(batch['video_index']), batch['video'].size()[2], location)
             plt.imshow(batch["video"][num].permute(1, 2, 3, 0)[i])
