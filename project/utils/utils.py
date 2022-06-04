@@ -100,36 +100,44 @@ def random_split_video(fileDir: str, tarDir: str, rate: float = 0.8, version_fla
 
         for flag in version_flag:
 
-            # check folder
-            del_folder(tarDir, flag, disease_flag)
-            make_folder(tarDir, flag, disease_flag)
+            # check if exist
+            if os.path.exists(os.path.join(tarDir, flag, disease_flag)):
+                print("the dataset %s had been splited!" % disease_flag)
+                break
+            else:
+                # check folder
+                del_folder(tarDir, flag, disease_flag)
+                make_folder(tarDir, flag, disease_flag)
 
-            pathDir = os.listdir(fileDir_flag)  # 取图片的原始路径
-            filenumber = len(pathDir)
+                pathDir = os.listdir(fileDir_flag)  # 取图片的原始路径
+                filenumber = len(pathDir)
 
-            if flag == "train":
+                if flag == "train":
 
-                split_rate = rate  # 自定义抽取图片的比例，比方说100张抽10张，那就是0.1
-                picknumber = int(filenumber * split_rate)  # 按照rate比例从文件夹中取一定数量图片
-                sample = random.sample(pathDir, picknumber)  # 随机选取picknumber数量的样本图片
+                    split_rate = rate  # 自定义抽取图片的比例，比方说100张抽10张，那就是0.1
+                    picknumber = int(filenumber * split_rate)  # 按照rate比例从文件夹中取一定数量图片
+                    sample = random.sample(pathDir, picknumber)  # 随机选取picknumber数量的样本图片
 
-                for name in sample:
-                    shutil.copy(os.path.join(fileDir_flag, name), os.path.join(tarDir, flag, disease_flag))
+                    for name in sample:
+                        shutil.copy(os.path.join(fileDir_flag, name), os.path.join(tarDir, flag, disease_flag))
 
-                split_video_info[disease_flag + "_" + flag] = len(sample)
+                    split_video_info[disease_flag + "_" + flag] = len(sample)
 
-            if flag == "val":
-                leave_sample = []  # 计算剩下的视频
-                for item in pathDir:
-                    if item not in sample:
-                        leave_sample.append(item)
+                if flag == "val":
+                    leave_sample = []  # 计算剩下的视频
+                    for item in pathDir:
+                        if item not in sample:
+                            leave_sample.append(item)
 
-                for name in leave_sample:
-                    shutil.copy(os.path.join(fileDir_flag, name), os.path.join(tarDir, flag, disease_flag))
+                    for name in leave_sample:
+                        shutil.copy(os.path.join(fileDir_flag, name), os.path.join(tarDir, flag, disease_flag))
 
-                split_video_info[disease_flag + "_" + flag] = len(leave_sample)
+                    split_video_info[disease_flag + "_" + flag] = len(leave_sample)
 
-                # print(filenumber)
+                print("Total " + disease_flag + ' Number\t' + str(filenumber))
+        
+            print(split_video_info)
 
-        print("Total " + disease_flag + ' Number\t' + str(filenumber))
-    print(split_video_info)
+    print("success split dataset to " + str(tarDir))
+
+

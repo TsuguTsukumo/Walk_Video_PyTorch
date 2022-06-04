@@ -108,7 +108,6 @@ class WalkDataModule(LightningDataModule):
             rate=0.8,
             disease_flag=("ASD", "LCS")
         )
-        print("success split dataset to " + str(self._SPLIT_DATA_PATH))
 
     def setup(self, stage: Optional[str] = None) -> None:
         '''
