@@ -17,10 +17,10 @@ import os
 # %%
 
 
-def make_walk_resnet(model_class_num: int):
+def make_walk_resnet(model_class_num: int = 2, model_depth:int = 50):
     return models.resnet.create_resnet(
         input_channel=3,
-        model_depth=50,
+        model_depth=model_depth,
         model_num_class=model_class_num,
         norm=nn.BatchNorm3d,
         activation=nn.ReLU,
@@ -29,10 +29,10 @@ def make_walk_resnet(model_class_num: int):
 # %%
 
 
-def make_walk_csn(model_class_num: int):
+def make_walk_csn(model_class_num: int = 2, model_depth:int=50):
     return models.create_csn(
         input_channel=3,
-        model_depth=50,
+        model_depth=model_depth,
         model_num_class=model_class_num,
         norm=nn.BatchNorm3d,
         activation=nn.ReLU,
@@ -48,11 +48,12 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         self.lr = hparams.lr
         self.model_class_num = hparams.model_class_num
+        self.model_depth = hparams.model_depth
 
         if self.model_type == 'resnet':
-            self.model = make_walk_resnet(self.model_class_num)
+            self.model = make_walk_resnet(self.model_class_num, self.model_depth)
         elif self.model_type == 'csn':
-            self.model = make_walk_csn(self.model_class_num)
+            self.model = make_walk_csn(self.model_class_num, self.model_depth)
 
     def forward(self, x):
         return self.model(x)
