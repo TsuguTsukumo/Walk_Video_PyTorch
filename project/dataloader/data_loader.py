@@ -100,7 +100,7 @@ class WalkDataModule(LightningDataModule):
         )
 
     def prepare_data(self) -> None:
-        
+
         # split meta dataset random to tar file path
         random_split_video(
             fileDir=self._DATA_PATH,
@@ -109,14 +109,14 @@ class WalkDataModule(LightningDataModule):
             disease_flag=("ASD", "LCS")
         )
         print("success split dataset to " + str(self._SPLIT_DATA_PATH))
-        
+
     def setup(self, stage: Optional[str] = None) -> None:
         '''
         assign tran, val, predict datasets for use in dataloaders
 
         Args:
             stage (Optional[str], optional): trainer.stage, in ('fit', 'validate', 'test', 'predict'). Defaults to None.
-        '''        
+        '''
 
         # if stage == "fit" or stage == None:
         if stage in ("fit", None):
@@ -133,6 +133,7 @@ class WalkDataModule(LightningDataModule):
                 transform=self.transform
             )
 
+        # FIXME
         if stage in ("predict", None):
             self.pred_dataset = WalkDataset(
                 data_path=os.path.join(self._SPLIT_DATA_PATH, "predict"),
@@ -142,8 +143,8 @@ class WalkDataModule(LightningDataModule):
 
     def train_dataloader(self) -> DataLoader:
         '''
-        create the Walk train partition from the list of video labels 
-        in directory and subdirectory. Add transform that subsamples and 
+        create the Walk train partition from the list of video labels
+        in directory and subdirectory. Add transform that subsamples and
         normalizes the video before applying the scale, crop and flip augmentations.
         '''
 
@@ -155,8 +156,8 @@ class WalkDataModule(LightningDataModule):
 
     def val_dataloader(self) -> DataLoader:
         '''
-        create the Walk train partition from the list of video labels 
-        in directory and subdirectory. Add transform that subsamples and 
+        create the Walk train partition from the list of video labels
+        in directory and subdirectory. Add transform that subsamples and
         normalizes the video before applying the scale, crop and flip augmentations.
         '''
 
@@ -175,10 +176,16 @@ class WalkDataModule(LightningDataModule):
 
     def predict_dataloader(self) -> DataLoader:
         '''
-        create the Walk pred partition from the list of video labels 
-        in directory and subdirectory. Add transform that subsamples and 
+        create the Walk pred partition from the list of video labels
+        in directory and subdirectory. Add transform that subsamples and
         normalizes the video before applying the scale, crop and flip augmentations.
         '''
+        # FIXME
+        self.pred_dataset = WalkDataset(
+            data_path=os.path.join(self._SPLIT_DATA_PATH, "predict"),
+            clip_sampler=pytorchvideo.data.make_clip_sampler("random", self._CLIP_DURATION),
+            transform=self.transform
+        )
 
         return DataLoader(
             self.pred_dataset,
@@ -190,11 +197,11 @@ class WalkDataModule(LightningDataModule):
 # %%
 if __name__ == '__main__':
     class opt:
-        _DATA_PATH = "/workspace/data/handle_video/" # meta dataset path
-        _SPLIT_DATA_PATH = "/workspace/data/dataset/" # traing dataset path 
-        _CLIP_DURATION = 2 # Duration of sampled clip for each video
+        _DATA_PATH = "/workspace/data/handle_video/"  # meta dataset path
+        _SPLIT_DATA_PATH = "/workspace/data/dataset/"  # traing dataset path
+        _CLIP_DURATION = 2  # Duration of sampled clip for each video
         _BATCH_SIZE = 8
-        _NUM_WORKERS = 2 # Number of parallel processes fetching data
+        _NUM_WORKERS = 2  # Number of parallel processes fetching data
         model_type = 'csn'  # Number of parallel processes fetching data
 
     dm = WalkDataModule(opt)

@@ -43,7 +43,7 @@ def get_parameters():
 
     parser.add_argument('--log_path', type=str, default='./logs', help='the lightning logs saved path')
 
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 
 # %%
@@ -74,12 +74,16 @@ def train(hparams):
     trainer.fit(classification_module, data_module)
 
     # testing
-    trainer.test(dataloaders=data_module)
+    # trainer.test(dataloaders=data_module)
+
+    # predict 
+    trainer.predict(dataloaders=data_module)
 
 
 # %%
 if __name__ == '__main__':
 
-    config = get_parameters()
+    # for test in jupyter 
+    config, unkonwn = get_parameters()
 
     train(config)
