@@ -64,7 +64,7 @@ def train(hparams):
 
     trainer = Trainer(accelerator="auto",
                       devices=1, 
-                      gpus="1",
+                      gpus="0",
                       max_epochs=100,
                       logger=tb_logger,
                       log_every_n_steps=10,
