@@ -108,11 +108,12 @@ class WalkVideoClassificationLightningModule(LightningModule):
         self.log("val_loss", loss)
         return loss
 
-    # todo predict step
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
-        pass
-        return super().predict_step(batch, batch_idx, dataloader_idx)
+        y_hat = self.model(batch["video"])
+        loss = F.cross_entropy(y_hat, batch["label"])
+        self.log("pred_loss", loss)
 
+        return loss
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
