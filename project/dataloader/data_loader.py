@@ -5,7 +5,7 @@ from torchvision.transforms import (
     Compose,
     Lambda,
     RandomCrop,
-    RandomHorizontalFlip
+    RandomHorizontalFlip,
 )
 from pytorchvideo.transforms import (
     ApplyTransformToKey,
@@ -13,8 +13,10 @@ from pytorchvideo.transforms import (
     RandomShortSideScale,
     RemoveKey,
     ShortSideScale,
-    UniformTemporalSubsample
+    UniformTemporalSubsample,
+    create_video_transform
 )
+
 from random import random
 from typing import Any, Callable, Dict, Optional, Type
 from pytorch_lightning import LightningDataModule
@@ -96,18 +98,22 @@ class WalkDataModule(LightningDataModule):
                         ]
                     ),
                 ),
+                #todo try this framework, from pytorchvideo
+                # create_video_transform(mode="train")
             ]
         )
 
     def prepare_data(self) -> None:
 
         # split meta dataset random to tar file path
-        random_split_video(
-            fileDir=self._DATA_PATH,
-            tarDir=self._SPLIT_DATA_PATH,
-            rate=0.8,
-            disease_flag=("ASD", "LCS")
-        )
+        # todo three split class [train, val, predict]
+        # random_split_video(
+        #     fileDir=self._DATA_PATH,
+        #     tarDir=self._SPLIT_DATA_PATH,
+        #     rate=0.8,
+        #     disease_flag=("ASD", "LCS")
+        # )
+        pass
 
     def setup(self, stage: Optional[str] = None) -> None:
         '''
