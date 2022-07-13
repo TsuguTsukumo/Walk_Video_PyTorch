@@ -160,7 +160,6 @@ pytest-forked==1.4.0
 pytest-rerunfailures==10.2
 python-apt==1.6.5+ubuntu0.7
 python-dateutil==2.8.2
-pytorch-lightning @ file:///home/pytorch-lightning
 pytorchvideo==0.1.5
 pytz==2022.1
 PyYAML==6.0
