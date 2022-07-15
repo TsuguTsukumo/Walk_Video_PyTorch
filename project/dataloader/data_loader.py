@@ -131,16 +131,16 @@ class WalkDataModule(LightningDataModule):
                 transform=self.transform
             )
 
-        if stage in ("fit", "validate", "test", None):
-            self.val_test_dataset = WalkDataset(
+        if stage in ("fit", "validate", None):
+            self.val_dataset = WalkDataset(
                 data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
                 clip_sampler=pytorchvideo.data.make_clip_sampler("uniform", self._CLIP_DURATION),
                 transform=self.transform
             )
 
         # FIXME
-        if stage in ("predict", None):
-            self.pred_dataset = WalkDataset(
+        if stage in ("predict", "test", None):
+            self.test_pred_dataset = WalkDataset(
                 data_path=os.path.join(self._SPLIT_DATA_PATH, "predict"),
                 clip_sampler=pytorchvideo.data.make_clip_sampler("random", self._CLIP_DURATION),
                 transform=self.transform
@@ -167,14 +167,19 @@ class WalkDataModule(LightningDataModule):
         '''
 
         return DataLoader(
-            self.val_test_dataset,
+            self.val_dataset,
             batch_size=self._BATCH_SIZE,
             num_workers=self._NUM_WORKERS,
         )
 
     def test_dataloader(self) -> DataLoader:
+        '''
+        create the Walk train partition from the list of video labels
+        in directory and subdirectory. Add transform that subsamples and 
+        normalizes the video before applying the scale, crop and flip augmentations.
+        '''        
         return DataLoader(
-            self.val_test_dataset,
+            self.test_pred_dataset,
             batch_size=self._BATCH_SIZE,
             num_workers=self._NUM_WORKERS,
         )
@@ -185,15 +190,8 @@ class WalkDataModule(LightningDataModule):
         in directory and subdirectory. Add transform that subsamples and
         normalizes the video before applying the scale, crop and flip augmentations.
         '''
-        # FIXME
-        self.pred_dataset = WalkDataset(
-            data_path=os.path.join(self._SPLIT_DATA_PATH, "predict"),
-            clip_sampler=pytorchvideo.data.make_clip_sampler("random", self._CLIP_DURATION),
-            transform=self.transform
-        )
-
         return DataLoader(
-            self.pred_dataset,
+            self.test_pred_dataset,
             batch_size=self._BATCH_SIZE,
             num_workers=self._NUM_WORKERS,
         )

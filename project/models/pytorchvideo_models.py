@@ -11,6 +11,8 @@ from pytorch_lightning import LightningModule
 import pytorch_lightning
 import os
 
+from utils.metrics import get_Accuracy
+
 # %%
 class MakeVideoModule(nn.Module):
     '''
@@ -77,6 +79,8 @@ class WalkVideoClassificationLightningModule(LightningModule):
         # return model type name
         self.model_type=hparams.model
 
+        # save the hyperparameters to the file and ckpt
+        self.save_hyperparameters()
         self.lr=hparams.lr
 
         self.model = MakeVideoModule(hparams)
@@ -114,6 +118,28 @@ class WalkVideoClassificationLightningModule(LightningModule):
         self.log("pred_loss", loss)
 
         return loss
+
+    def test_step(self, batch, batch_idx):
+        real_name = []
+        real_label = []
+
+        real_name.append(batch["video_name"])
+        real_label.append(batch["label"])
+
+
+        pred = self.model(batch["video"])
+
+        test_loss = F.cross_entropy(pred, batch["label"])
+
+        # calculate acc 
+        labels_hat = torch.argmax(pred, dim=1)
+        test_acc = torch.sum(labels_hat == batch["label"]).item() / (len(batch["label"]) * 1.0)
+
+        accuracy = get_Accuracy()
+        test_acc_metrice = accuracy(labels_hat.cuda(), batch["label"].cuda())
+        # log the output 
+        self.log_dict({'test_loss': test_loss, 'test_acc': test_acc, 'test_acc_metrice': test_acc_metrice})
+        
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)

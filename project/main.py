@@ -4,11 +4,8 @@ from pytorch_lightning import loggers as pl_loggers
 from dataloader.data_loader import WalkDataModule
 from models.pytorchvideo_models import WalkVideoClassificationLightningModule
 from argparse import ArgumentParser
-import torch.nn as nn
-import torch.nn.functional as F
 
 import pytorch_lightning
-from yaml import parse
 
 # %%
 
@@ -28,6 +25,7 @@ def get_parameters():
     parser.add_argument('--batch_size', type=int, default=16, help='batch size for the dataloader')
     parser.add_argument('--num_workers', type=int, default=2, help='dataloader for load video')
     parser.add_argument('--clip_duration', type=int, default=2, help='clip duration for the video')
+    parser.add_argument('--gpu_num', type=int, default=0, choices=[0, 1], help='the gpu number whicht to train')
 
     # TTUR
     parser.add_argument('--lr', type=float, default=0.0001, help='learning rate for optimizer')
@@ -64,7 +62,7 @@ def train(hparams):
 
     trainer = Trainer(accelerator="auto",
                       devices=1, 
-                      gpus="0",
+                      gpus=hparams.gpu_num,
                       max_epochs=100,
                       logger=tb_logger,
                       log_every_n_steps=10,

@@ -1,4 +1,5 @@
 from pytorch_lightning import Trainer, seed_everything
+from project.models import walk
 from project.lit_mnist import LitClassifier
 from project.datasets.mnist import mnist
 
