@@ -142,7 +142,7 @@ class WalkDataModule(LightningDataModule):
         # no data so have not predict dataset 
         if stage in ("predict", "test", None):
             self.test_pred_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_DATA_PATH, "predict"),
+                data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
                 clip_sampler=pytorchvideo.data.make_clip_sampler("random", self._CLIP_DURATION),
                 transform=self.transform
             )
