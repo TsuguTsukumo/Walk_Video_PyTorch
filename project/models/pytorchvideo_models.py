@@ -1,4 +1,5 @@
 # %%
+from operator import truediv
 from torchinfo import summary
 import string
 from pytorchvideo.models import x3d, resnet, csn, slowfast, r2plus1d
@@ -11,7 +12,7 @@ from pytorch_lightning import LightningModule
 import pytorch_lightning
 import os
 
-from utils.metrics import get_Accuracy
+from utils.metrics import get_Accuracy, get_Dice
 
 # %%
 class MakeVideoModule(nn.Module):
@@ -86,6 +87,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         self.model = MakeVideoModule(hparams)
 
+        # select the network structure 
         if self.model_type == 'resnet':
             self.model=self.model.make_walk_resnet()
 
@@ -95,6 +97,10 @@ class WalkVideoClassificationLightningModule(LightningModule):
         elif self.model_type == 'x3d':
             self.model = self.model.make_walk_x3d()
 
+        # select the metrics
+        self.accuracy = get_Accuracy()
+        self.dice = get_Dice()
+
     def forward(self, x):
         return self.model(x)
 
@@ -103,17 +109,34 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         loss=F.cross_entropy(y_hat, batch["label"])
 
+        self.accuracy(y_hat, batch["label"])
+
         self.log("train_loss", loss.item())
 
         return loss
 
+    def training_epoch_end(self, outputs) -> None:
+
+        # log epoch metric
+        self.log('train_acc_epoch', self.accuracy)
+
+
     def validation_step(self, batch, batch_idx):
+
         y_hat=self.model(batch["video"])
+
         loss=F.cross_entropy(y_hat, batch["label"])
-        self.log("val_loss", loss)
-        return loss
+
+        # calc the metric, function from torchmetrics
+        self.accuracy(y_hat, batch["label"])
+
+        # log the output 
+        self.log_dict({'val_loss': loss, 'test_acc_step': self.accuracy}, on_step=True, on_epoch=True)
+        
+        return loss, self.accuracy
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
+        # todo
         y_hat = self.model(batch["video"])
         loss = F.cross_entropy(y_hat, batch["label"])
         self.log("pred_loss", loss)
@@ -121,25 +144,19 @@ class WalkVideoClassificationLightningModule(LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        real_name = []
-        real_label = []
 
-        real_name.append(batch["video_name"])
-        real_label.append(batch["label"])
+        target = torch.tensor(batch["label"])
 
+        test_pred = self.model(batch["video"])
 
-        pred = self.model(batch["video"])
-
-        test_loss = F.cross_entropy(pred, batch["label"])
+        test_loss = F.cross_entropy(test_pred, target)
 
         # calculate acc 
-        labels_hat = torch.argmax(pred, dim=1)
-        test_acc = torch.sum(labels_hat == batch["label"]).item() / (len(batch["label"]) * 1.0)
+        self.accuracy(test_pred, target)
+        self.dice(test_pred, target)
 
-        accuracy = get_Accuracy()
-        test_acc_metrice = accuracy(labels_hat.cuda(), batch["label"].cuda())
         # log the output 
-        self.log_dict({'test_loss': test_loss, 'test_acc': test_acc, 'test_acc_metrice': test_acc_metrice})
+        self.log_dict({'test_loss': test_loss, 'test_acc_step': self.accuracy, 'test_dice_step': self.dice})
         
 
     def configure_optimizers(self):

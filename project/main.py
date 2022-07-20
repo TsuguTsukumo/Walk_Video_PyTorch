@@ -1,7 +1,10 @@
 # %%
+from weakref import ref
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning import loggers as pl_loggers
-from pytorch_lightning.callbacks import TQDMProgressBar
+# callbacks
+from pytorch_lightning.callbacks import TQDMProgressBar, RichModelSummary, RichProgressBar
+from pl_bolts.callbacks import PrintTableMetricsCallback, TrainingDataMonitor
 
 from dataloader.data_loader import WalkDataModule
 from models.pytorchvideo_models import WalkVideoClassificationLightningModule
@@ -64,7 +67,14 @@ def train(hparams):
     # for the tensorboard
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=hparams.log_path, name=hparams.model, version=hparams.version)
 
+    # some callbacks
     progress_bar = TQDMProgressBar(refresh_rate=hparams.batch_size)
+    rich_model_summary = RichModelSummary(max_depth=5)
+    rich_progress_bar = RichProgressBar(refresh_rate=hparams.batch_size)
+
+    # bolts callbacks
+    table_metrics_callback = PrintTableMetricsCallback()
+    monitor = TrainingDataMonitor(log_every_n_steps=50)
 
     trainer = Trainer(accelerator="auto",
                       devices=1, 
@@ -72,7 +82,7 @@ def train(hparams):
                       max_epochs=100,
                       logger=tb_logger,
                       log_every_n_steps=100,
-                      callbacks=[progress_bar],
+                      callbacks=[progress_bar, rich_model_summary, table_metrics_callback, monitor],
                     #   deterministic=True 
                       )
 
