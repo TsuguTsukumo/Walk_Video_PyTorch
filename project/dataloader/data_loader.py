@@ -139,6 +139,7 @@ class WalkDataModule(LightningDataModule):
             )
 
         # FIXME
+        # no data so have not predict dataset 
         if stage in ("predict", "test", None):
             self.test_pred_dataset = WalkDataset(
                 data_path=os.path.join(self._SPLIT_DATA_PATH, "predict"),

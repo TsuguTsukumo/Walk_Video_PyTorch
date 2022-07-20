@@ -1,6 +1,8 @@
 # %%
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks import TQDMProgressBar
+
 from dataloader.data_loader import WalkDataModule
 from models.pytorchvideo_models import WalkVideoClassificationLightningModule
 from argparse import ArgumentParser
@@ -41,6 +43,9 @@ def get_parameters():
 
     parser.add_argument('--log_path', type=str, default='./logs', help='the lightning logs saved path')
 
+    # add the parser to ther Trainer 
+    # parser = Trainer.add_argparse_args(parser)
+
     return parser.parse_known_args()
 
 
@@ -55,19 +60,24 @@ def train(hparams):
 
     # instance the data module
     data_module = WalkDataModule(hparams)
-    # data_module.setup()
 
     # for the tensorboard
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=hparams.log_path, name=hparams.model, version=hparams.version)
+
+    progress_bar = TQDMProgressBar(refresh_rate=hparams.batch_size)
 
     trainer = Trainer(accelerator="auto",
                       devices=1, 
                       gpus=hparams.gpu_num,
                       max_epochs=100,
                       logger=tb_logger,
-                      log_every_n_steps=10,
+                      log_every_n_steps=100,
+                      callbacks=[progress_bar],
                     #   deterministic=True 
                       )
+
+    # from the params
+    # trainer = Trainer.from_argparse_args(hparams)
 
     # training and val
     trainer.fit(classification_module, data_module)
@@ -76,7 +86,7 @@ def train(hparams):
     # trainer.test(dataloaders=data_module)
 
     # predict 
-    trainer.predict(dataloaders=data_module)
+    # trainer.predict(dataloaders=data_module)
 
 
 # %%

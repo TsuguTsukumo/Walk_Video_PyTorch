@@ -81,6 +81,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         # save the hyperparameters to the file and ckpt
         self.save_hyperparameters()
+        
         self.lr=hparams.lr
 
         self.model = MakeVideoModule(hparams)
