@@ -1,10 +1,12 @@
 # %%
+import os
 from weakref import ref
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning import loggers as pl_loggers
 # callbacks
 from pytorch_lightning.callbacks import TQDMProgressBar, RichModelSummary, RichProgressBar
 from pl_bolts.callbacks import PrintTableMetricsCallback, TrainingDataMonitor
+from Walk_Video_PyTorch.project.utils.utils import get_ckpt_path
 
 from dataloader.data_loader import WalkDataModule
 from models.pytorchvideo_models import WalkVideoClassificationLightningModule
@@ -37,15 +39,14 @@ def get_parameters():
     parser.add_argument('--beta1', type=float, default=0.5)
     parser.add_argument('--beta2', type=float, default=0.999)
 
-    # using pretrained
-    parser.add_argument('--pretrained_model', type=int, default=None)
-
     # Path
     parser.add_argument('--data_path', type=str, default="/workspace/data/walk_data_finish_train/lat/", help='meta dataset path')
     parser.add_argument('--split_data_path', type=str, default="/workspace/data/dataset/", help="split dataset path")
 
     parser.add_argument('--log_path', type=str, default='./logs', help='the lightning logs saved path')
 
+    # using pretrained 
+    parser.add_argument('--pretrained_model', type=bool, default=False, help='if use the pretrained model for training.')
     # add the parser to ther Trainer 
     # parser = Trainer.add_argparse_args(parser)
 
@@ -82,15 +83,19 @@ def train(hparams):
                       max_epochs=100,
                       logger=tb_logger,
                       log_every_n_steps=100,
+                      check_val_every_n_epoch=10,
                       callbacks=[progress_bar, rich_model_summary, table_metrics_callback, monitor],
                     #   deterministic=True 
                       )
 
     # from the params
     # trainer = Trainer.from_argparse_args(hparams)
-
-    # training and val
-    trainer.fit(classification_module, data_module)
+    
+    if hparams.pretrained_model:
+        trainer.fit(classification_module, data_module, ckpt_path=get_ckpt_path)
+    else:    
+        # training and val
+        trainer.fit(classification_module, data_module)
 
     # testing
     # trainer.test(dataloaders=data_module)

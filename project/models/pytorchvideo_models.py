@@ -111,7 +111,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         self.accuracy(y_hat, batch["label"])
 
-        self.log("train_loss", loss.item())
+        self.log("train_loss", loss.item(), on_step=True, on_epoch=True)
 
         return loss
 
@@ -134,6 +134,10 @@ class WalkVideoClassificationLightningModule(LightningModule):
         self.log_dict({'val_loss': loss, 'test_acc_step': self.accuracy}, on_step=True, on_epoch=True)
         
         return loss, self.accuracy
+
+    def validation_epoch_end(self, outputs) -> None:
+        
+        self.log('val_acc_epoch', self.accuracy)
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         # todo

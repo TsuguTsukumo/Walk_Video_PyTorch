@@ -140,4 +140,7 @@ def random_split_video(fileDir: str, tarDir: str, rate: float = 0.8, version_fla
 
     print("success split dataset to " + str(tarDir))
 
+def get_ckpt_path(config):
 
+    get_ckpt_path = os.path.join(config.log_path, config.model, config.version, 'checkpoints', '.')
+    return get_ckpt_path
