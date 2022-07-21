@@ -1,19 +1,17 @@
 # %%
 import os
-from weakref import ref
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning import loggers as pl_loggers
 # callbacks
 from pytorch_lightning.callbacks import TQDMProgressBar, RichModelSummary, RichProgressBar
 from pl_bolts.callbacks import PrintTableMetricsCallback, TrainingDataMonitor
-from Walk_Video_PyTorch.project.utils.utils import get_ckpt_path
+from utils.utils import get_ckpt_path
 
 from dataloader.data_loader import WalkDataModule
 from models.pytorchvideo_models import WalkVideoClassificationLightningModule
 from argparse import ArgumentParser
 
 import pytorch_lightning
-
 # %%
 
 def get_parameters():
@@ -57,6 +55,9 @@ def get_parameters():
 
 def train(hparams):
 
+    # connect the version + model + depth
+    hparams.version = hparams.version + '_' + hparams.model + '_depth' + str(hparams.depth)
+
     # fixme will occure bug, with deterministic = true
     # seed_everything(42, workers=True)
 
@@ -80,7 +81,7 @@ def train(hparams):
     trainer = Trainer(accelerator="auto",
                       devices=1, 
                       gpus=hparams.gpu_num,
-                      max_epochs=100,
+                      max_epochs=hparams.max_epochs,
                       logger=tb_logger,
                       log_every_n_steps=100,
                       check_val_every_n_epoch=10,

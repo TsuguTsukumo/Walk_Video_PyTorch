@@ -141,6 +141,19 @@ def random_split_video(fileDir: str, tarDir: str, rate: float = 0.8, version_fla
     print("success split dataset to " + str(tarDir))
 
 def get_ckpt_path(config):
+    '''
+    get the finall train ckpt, for the pretrain model, or some task.
 
-    get_ckpt_path = os.path.join(config.log_path, config.model, config.version, 'checkpoints', '.')
-    return get_ckpt_path
+    Args:
+        config (parser): parameters of the training
+
+    Returns:
+        string: final ckpt file path
+    '''
+    
+    ckpt_path = os.path.join('/workspace/Walk_Video_PyTorch', 'logs', config.model, config.version, 'checkpoints')
+    file_name = os.listdir(ckpt_path)[0]
+
+    ckpt_file_path = os.path.join(ckpt_path, file_name)
+
+    return ckpt_file_path
