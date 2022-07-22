@@ -106,6 +106,9 @@ class WalkDataModule(LightningDataModule):
             ]
         )
 
+        # save hyper parameters
+        self.save_hyperparameters()
+
     def prepare_data(self) -> None:
 
         # split meta dataset random to tar file path
@@ -146,7 +149,7 @@ class WalkDataModule(LightningDataModule):
         if stage in ("predict", "test", None):
             self.test_pred_dataset = WalkDataset(
                 data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
-                clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
+                clip_sampler=make_clip_sampler("uniform", self._CLIP_DURATION),
                 transform=self.transform
             )
 
