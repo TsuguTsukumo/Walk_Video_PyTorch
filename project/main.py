@@ -70,8 +70,8 @@ def train(hparams):
     tb_logger = pl_loggers.TensorBoardLogger(save_dir=hparams.log_path, name=hparams.model, version=hparams.version)
 
     # some callbacks
-    progress_bar = TQDMProgressBar(refresh_rate=hparams.batch_size)
-    rich_model_summary = RichModelSummary(max_depth=5)
+    progress_bar = TQDMProgressBar(refresh_rate=100)
+    rich_model_summary = RichModelSummary(max_depth=2)
     rich_progress_bar = RichProgressBar(refresh_rate=hparams.batch_size)
 
     # bolts callbacks
@@ -84,7 +84,7 @@ def train(hparams):
                       max_epochs=hparams.max_epochs,
                       logger=tb_logger,
                       log_every_n_steps=100,
-                      check_val_every_n_epoch=10,
+                      check_val_every_n_epoch=1,
                       callbacks=[progress_bar, rich_model_summary, table_metrics_callback, monitor],
                     #   deterministic=True 
                       )
