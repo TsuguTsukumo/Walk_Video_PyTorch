@@ -56,7 +56,7 @@ def get_parameters():
 def train(hparams):
 
     # connect the version + model + depth
-    hparams.version = hparams.version + '_' + hparams.model + '_depth' + str(hparams.depth)
+    hparams.version = hparams.version + '_' + hparams.model + '_depth' + str(hparams.model_depth)
 
     # fixme will occure bug, with deterministic = true
     # seed_everything(42, workers=True)
