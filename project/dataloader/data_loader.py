@@ -1,23 +1,24 @@
 
 # %%
 import matplotlib.pylab as plt
+
 from torchvision.transforms import (
     Compose,
     Lambda,
     RandomCrop,
+    Resize,
     RandomHorizontalFlip,
 )
 from pytorchvideo.transforms import (
     ApplyTransformToKey,
     Normalize,
     RandomShortSideScale,
-    RemoveKey,
     ShortSideScale,
     UniformTemporalSubsample,
+    Div255,
     create_video_transform
 )
 
-from random import random
 from typing import Any, Callable, Dict, Optional, Type
 from pytorch_lightning import LightningDataModule
 import os
@@ -26,10 +27,10 @@ import torch
 from torch.utils.data import DataLoader
 import pytorchvideo
 from pytorchvideo.data.clip_sampling import ClipSampler
+from pytorchvideo.data import make_clip_sampler
 
 from pytorchvideo.data.labeled_video_dataset import LabeledVideoDataset, labeled_video_dataset
 
-from utils.utils import random_split_video
 
 
 # %%
@@ -89,11 +90,13 @@ class WalkDataModule(LightningDataModule):
                     key="video",
                     transform=Compose(
                         [
-                            UniformTemporalSubsample(8),
-                            Lambda(lambda x: x / 255.0),
+                            UniformTemporalSubsample(10),
+                            Div255(),
                             Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
-                            RandomShortSideScale(min_size=256, max_size=320),
-                            RandomCrop(244),
+                            # RandomShortSideScale(min_size=256, max_size=320),
+                            ShortSideScale(self._IMG_SIZE),
+                            # RandomCrop(244),
+                            Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
                             RandomHorizontalFlip(p=0.5),
                         ]
                     ),
@@ -127,14 +130,14 @@ class WalkDataModule(LightningDataModule):
         if stage in ("fit", None):
             self.train_dataset = WalkDataset(
                 data_path=os.path.join(self._SPLIT_DATA_PATH, "train"),
-                clip_sampler=pytorchvideo.data.make_clip_sampler("random", self._CLIP_DURATION),
+                clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
                 transform=self.transform
             )
 
         if stage in ("fit", "validate", None):
             self.val_dataset = WalkDataset(
                 data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
-                clip_sampler=pytorchvideo.data.make_clip_sampler("uniform", self._CLIP_DURATION),
+                clip_sampler=make_clip_sampler("uniform", self._CLIP_DURATION),
                 transform=self.transform
             )
 
@@ -143,7 +146,7 @@ class WalkDataModule(LightningDataModule):
         if stage in ("predict", "test", None):
             self.test_pred_dataset = WalkDataset(
                 data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
-                clip_sampler=pytorchvideo.data.make_clip_sampler("random", self._CLIP_DURATION),
+                clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
                 transform=self.transform
             )
 
