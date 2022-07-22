@@ -107,7 +107,7 @@ class WalkDataModule(LightningDataModule):
         )
 
         # save hyper parameters
-        self.save_hyperparameters()
+        self.save_hyperparameters(self.transform)
 
     def prepare_data(self) -> None:
 
