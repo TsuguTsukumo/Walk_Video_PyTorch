@@ -109,7 +109,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         loss=F.cross_entropy(y_hat, batch["label"])
 
-        self.accuracy(y_hat, batch["label"])
+        self.accuracy(F.softmax(y_hat, dim=-1), batch["label"])
 
         self.log("train_loss", loss.item(), on_step=True, on_epoch=True)
 
@@ -120,7 +120,6 @@ class WalkVideoClassificationLightningModule(LightningModule):
         # log epoch metric
         self.log('train_acc_epoch', self.accuracy)
 
-
     def validation_step(self, batch, batch_idx):
 
         y_hat=self.model(batch["video"])
@@ -128,7 +127,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
         loss=F.cross_entropy(y_hat, batch["label"])
 
         # calc the metric, function from torchmetrics
-        self.accuracy(y_hat, batch["label"])
+        self.accuracy(F.softmax(y_hat, dim=-1), batch["label"])
 
         # log the output 
         self.log_dict({'val_loss': loss, 'test_acc_step': self.accuracy}, on_step=True, on_epoch=True)
