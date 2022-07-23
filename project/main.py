@@ -19,7 +19,7 @@ def get_parameters():
     parser = ArgumentParser()
 
     # model hyper-parameters
-    parser.add_argument('--model', type=str, default='resnet', choices=['resnet', 'csn'])
+    parser.add_argument('--model', type=str, default='resnet', choices=['resnet', 'csn', 'x3d'])
     parser.add_argument('--img_size', type=int, default=256)
     parser.add_argument('--version', type=str, default='test', help='the version of logger, such data')
     parser.add_argument('--model_class_num', type=int, default=2, help='the class num of model')

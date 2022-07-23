@@ -1,15 +1,11 @@
 # %%
-from operator import truediv
 from torchinfo import summary
-import string
 from pytorchvideo.models import x3d, resnet, csn, slowfast, r2plus1d
 import torch
 import torch.nn as nn
-import pytorchvideo
 import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule
-import pytorch_lightning
 import os
 
 from utils.metrics import get_Accuracy, get_Dice
@@ -105,6 +101,17 @@ class WalkVideoClassificationLightningModule(LightningModule):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
+        '''
+        train steop when trainer.fit called
+
+        Args:
+            batch (3D tensor): b, c, t, h, w
+            batch_idx (_type_): _description_
+
+        Returns:
+            loss: the calc loss
+        '''
+
         y_hat=self.model(batch["video"])
 
         loss=F.cross_entropy(y_hat, batch["label"])
@@ -118,9 +125,21 @@ class WalkVideoClassificationLightningModule(LightningModule):
     def training_epoch_end(self, outputs) -> None:
 
         # log epoch metric
-        self.log('train_acc_epoch', self.accuracy)
+        # self.log('train_acc_epoch', self.accuracy)
+        pass
 
     def validation_step(self, batch, batch_idx):
+        '''
+        val step when trainer.fit called.
+
+        Args:
+            batch (3D tensor): b, c, t, h, w
+            batch_idx (_type_): _description_
+
+        Returns:
+            loss: the calc loss 
+            accuract: selected accuracy result.
+        '''
 
         y_hat=self.model(batch["video"])
 
@@ -129,45 +148,61 @@ class WalkVideoClassificationLightningModule(LightningModule):
         # calc the metric, function from torchmetrics
         self.accuracy(F.softmax(y_hat, dim=-1), batch["label"])
 
-        # log the output 
-        self.log_dict({'val_loss': loss, 'test_acc_step': self.accuracy}, on_step=True, on_epoch=True)
+        # log the val loss and val acc, in step and in epoch.
+        self.log_dict({'val_loss': loss, 'val_acc': self.accuracy}, on_step=True, on_epoch=True)
         
         return loss, self.accuracy
 
     def validation_epoch_end(self, outputs) -> None:
         
-        self.log('val_acc_epoch', self.accuracy)
+        # self.log('val_acc_epoch', self.accuracy)
+        pass
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         # todo
-        y_hat = self.model(batch["video"])
-        loss = F.cross_entropy(y_hat, batch["label"])
-        self.log("pred_loss", loss)
+        # y_hat = self.model(batch["video"])
+        # loss = F.cross_entropy(y_hat, batch["label"])
+        # self.log("pred_loss", loss)
 
-        return loss
+        # return loss
+        pass
 
     def test_step(self, batch, batch_idx):
+        '''
+        test step when trainer.test called
 
-        target = torch.tensor(batch["label"])
+        Args:
+            batch (3D tensor): b, c, t, h, w
+            batch_idx (_type_): _description_
+        '''
+
+        target = batch["label"]
 
         test_pred = self.model(batch["video"])
 
         test_loss = F.cross_entropy(test_pred, target)
 
         # calculate acc 
-        self.accuracy(test_pred, target)
-        self.dice(test_pred, target)
+        self.accuracy(F.softmax(test_pred, dim=-1), target)
+        # self.dice(test_pred, target)
 
-        # log the output 
-        self.log_dict({'test_loss': test_loss, 'test_acc_step': self.accuracy, 'test_dice_step': self.dice})
+        # log the test loss, and test acc, in step and in epoch
+        self.log_dict({'test_loss': test_loss, 'test_acc': self.accuracy}, on_step=True, on_epoch=True)
         
 
     def configure_optimizers(self):
+        '''
+        configure the optimizer and lr scheduler
+
+        Returns:
+            optimizer: the used optimizer.
+            lr_scheduler: the selected lr scheduler.
+        '''
+
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
     def _get_name(self):
         return self.model_type
-
 
 # %%
 
@@ -180,6 +215,3 @@ if __name__ == '__main__':
     summary=summary(classification_module, input_size=(batch_size, 3, 8, 255, 255))
     print(summary)
     print(classification_module._get_name())
-
-
-# %%
