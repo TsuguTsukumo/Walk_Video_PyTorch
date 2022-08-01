@@ -25,8 +25,9 @@ def get_parameters():
     parser.add_argument('--beta2', type=float, default=0.999)
 
     # Path
-    parser.add_argument('--data_path', type=str, default="/workspace/data/walk_data_finish_train/lat/", help='meta dataset path')
-    parser.add_argument('--split_data_path', type=str, default="/workspace/data/dataset/", help="split dataset path")
+    parser.add_argument('--data_path', type=str, default="/workspace/data/dataset/", help='meta dataset path')
+    # parser.add_argument('--split_data_path', type=str, default="/workspace/data/dataset/", help="split dataset path")
+    parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/splt_pad_dataset", help="split and pad dataset with detection method.")
 
     parser.add_argument('--log_path', type=str, default='./logs', help='the lightning logs saved path')
 
@@ -36,3 +37,4 @@ def get_parameters():
     # parser = Trainer.add_argparse_args(parser)
 
     return parser.parse_known_args()
+
