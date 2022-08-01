@@ -157,3 +157,29 @@ def get_ckpt_path(config):
     ckpt_file_path = os.path.join(ckpt_path, file_name)
 
     return ckpt_file_path
+
+
+def count_File_Number(split_pad_data_path: str):
+    '''
+    with the given split pad data path, to calc the num of the different path file number, and print the number of different folder.
+
+    Args:
+        split_pad_data_path (str): the split pad data path
+    '''
+        
+    file_num_Dict = {}
+
+    for flag in ('train', 'val'):
+
+        data_path_flag = os.path.join(split_pad_data_path, flag)
+
+        for diease_flag in ('ASD', 'ASD_not'):
+
+            final_split_pad_data_path = os.path.join(data_path_flag, diease_flag)
+
+            now_path_num = len(os.listdir(final_split_pad_data_path))
+            now_path_name = final_split_pad_data_path
+
+            file_num_Dict[now_path_name] = now_path_num
+
+    print(file_num_Dict)

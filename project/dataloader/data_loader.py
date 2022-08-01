@@ -25,13 +25,10 @@ import os
 
 import torch
 from torch.utils.data import DataLoader
-import pytorchvideo
 from pytorchvideo.data.clip_sampling import ClipSampler
 from pytorchvideo.data import make_clip_sampler
 
 from pytorchvideo.data.labeled_video_dataset import LabeledVideoDataset, labeled_video_dataset
-
-
 
 # %%
 def WalkDataset(
@@ -76,25 +73,38 @@ class WalkDataModule(LightningDataModule):
     def __init__(self, opt):
         super().__init__()
         self._DATA_PATH = opt.data_path
-        self._SPLIT_DATA_PATH = opt.split_data_path
+        self._SPLIT_PAD_DATA_PATH = opt.split_pad_data_path
         self._CLIP_DURATION = opt.clip_duration
 
         self._BATCH_SIZE = opt.batch_size
         self._NUM_WORKERS = opt.num_workers
-
         self._IMG_SIZE = opt.img_size
 
-        self.transform = Compose(
+        self.uniform_temporal_subsample_num = opt.uniform_temporal_subsample_num
+
+        # self.transform_for_detection = Compose([
+        #     ApplyTransformToKey(
+        #         key="video",
+        #         transform=Compose([
+        #             UniformTemporalSubsample(self.uniform_temporal_subsample_num),
+        #             Div255(),
+        #             Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
+        #             RandomHorizontalFlip(p=0.5)
+        #         ])
+        #     )
+        # ])
+
+        self.transform_for_classification = Compose(
             [
                 ApplyTransformToKey(
                     key="video",
                     transform=Compose(
                         [
-                            UniformTemporalSubsample(10),
+                            UniformTemporalSubsample(self.uniform_temporal_subsample_num),
                             Div255(),
                             Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
                             # RandomShortSideScale(min_size=256, max_size=320),
-                            ShortSideScale(self._IMG_SIZE),
+                            # ShortSideScale(self._IMG_SIZE),
                             # RandomCrop(244),
                             Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
                             RandomHorizontalFlip(p=0.5),
@@ -129,25 +139,25 @@ class WalkDataModule(LightningDataModule):
         # if stage == "fit" or stage == None:
         if stage in ("fit", None):
             self.train_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_DATA_PATH, "train"),
+                data_path=os.path.join(self._SPLIT_PAD_DATA_PATH, "train"),
                 clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
-                transform=self.transform
+                transform=self.transform_for_classification,
             )
 
         if stage in ("fit", "validate", None):
             self.val_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
+                data_path=os.path.join(self._SPLIT_PAD_DATA_PATH, "val"),
                 clip_sampler=make_clip_sampler("uniform", self._CLIP_DURATION),
-                transform=self.transform
+                transform=self.transform_for_classification
             )
 
         # FIXME
         # no data so have not predict dataset 
         if stage in ("predict", "test", None):
             self.test_pred_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
+                data_path=os.path.join(self._SPLIT_PAD_DATA_PATH, "val"),
                 clip_sampler=make_clip_sampler("uniform", self._CLIP_DURATION),
-                transform=self.transform
+                transform=self.transform_for_classification
             )
 
     def train_dataloader(self) -> DataLoader:
@@ -156,7 +166,6 @@ class WalkDataModule(LightningDataModule):
         in directory and subdirectory. Add transform that subsamples and
         normalizes the video before applying the scale, crop and flip augmentations.
         '''
-
         return DataLoader(
             self.train_dataset,
             batch_size=self._BATCH_SIZE,
@@ -202,42 +211,37 @@ class WalkDataModule(LightningDataModule):
 
 
 # %%
-if __name__ == '__main__':
-    class opt:
-        _DATA_PATH = "/workspace/data/handle_video/"  # meta dataset path
-        _SPLIT_DATA_PATH = "/workspace/data/dataset/"  # traing dataset path
-        _CLIP_DURATION = 2  # Duration of sampled clip for each video
-        _BATCH_SIZE = 8
-        _NUM_WORKERS = 2  # Number of parallel processes fetching data
-        model_type = 'csn'  # Number of parallel processes fetching data
 
-    dm = WalkDataModule(opt)
+from parameters import get_parameters
+
+if __name__ == '__main__':
+
+    config, unkonwn = get_parameters()
+    
+    dm = WalkDataModule(config)
+
     dm.prepare_data()
     dm.setup()
 
-    train_data_loader = dm.train_dataloader()
+    clip_pad_imgs = dm.train_dataloader()
 
     data = {"video": [], "class": [], 'tensorsize': []}
 
-    batch = next(iter(train_data_loader))
+    # batch = next(iter(train_data_loader))
 
-    data["video"].append(batch['video_name'])
-    data["class"].append(batch['label'])
-    data["tensorsize"].append(batch['video'].size())
+    # location = 1
 
-    print(data)
+    # plt.figure(figsize=(120, 120))
 
-    location = 1
+    # for num in range(len(batch['video_index'])):  # batch size
+    #     for i in range(batch['video'].size()[2]):  # 帧数
+    #         plt.title(batch['video_name'][num])
+    #         plt.subplot(len(batch['video_index']), batch['video'].size()[2], location)
+    #         plt.imshow(batch["video"][num].permute(1, 2, 3, 0)[i])
 
-    plt.figure(figsize=(12, 12))
+    #         location += 1
+    #         plt.axis("off")
 
-    for num in range(len(batch['video_index'])):  # batch size
-        for i in range(batch['video'].size()[2]):  # 帧数
-            plt.title(batch['video_name'][num])
-            plt.subplot(len(batch['video_index']), batch['video'].size()[2], location)
-            plt.imshow(batch["video"][num].permute(1, 2, 3, 0)[i])
+    # plt.show()
 
-            location += 1
-            plt.axis("off")
-
-    plt.show()
+# %%

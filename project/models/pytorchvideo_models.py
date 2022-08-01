@@ -9,6 +9,7 @@ from pytorch_lightning import LightningModule
 import os
 
 from utils.metrics import get_Accuracy, get_Dice
+from models.batch_detection import batch_detection
 
 # %%
 class MakeVideoModule(nn.Module):
@@ -75,6 +76,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         # return model type name
         self.model_type=hparams.model
+        self.img_size = hparams.img_size
 
         # save the hyperparameters to the file and ckpt
         self.save_hyperparameters()
@@ -112,6 +114,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
             loss: the calc loss
         '''
 
+        # classification task
         y_hat=self.model(batch["video"])
 
         loss=F.cross_entropy(y_hat, batch["label"])
@@ -176,7 +179,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
             batch_idx (_type_): _description_
         '''
 
-        target = batch["label"]
+        target = batch["label"].detach().clone()
 
         test_pred = self.model(batch["video"])
 
@@ -205,13 +208,23 @@ class WalkVideoClassificationLightningModule(LightningModule):
         return self.model_type
 
 # %%
+from parameters import get_parameters
+from dataloader.data_loader import WalkDataModule
 
 if __name__ == '__main__':
+
+    param, unkonwn = get_parameters()
+
     os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
-    classification_module=WalkVideoClassificationLightningModule(model_type='resnet')
+    classification_module=WalkVideoClassificationLightningModule(param)
 
-    batch_size=16
-    summary=summary(classification_module, input_size=(batch_size, 3, 8, 255, 255))
+    data_module = WalkDataModule(param)
+
+    classification_module.training_step(data_module, 0)
+
+    summary=summary(classification_module, input_size=(6, 3, 8, 255, 255))
     print(summary)
     print(classification_module._get_name())
+
+# %%
