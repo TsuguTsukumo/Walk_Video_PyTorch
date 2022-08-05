@@ -30,6 +30,9 @@ def make_folder(path, *args):
     '''
     if not os.path.exists(os.path.join(path, *args)):
         os.makedirs(os.path.join(path, *args))
+        print("success make dir! where: %s " % os.path.join(path, *args))
+    else:
+        print("The target path already exists! where: %s " % os.path.join(path, *args))
 
 
 def tensor2var(x, grad=False):
@@ -166,7 +169,7 @@ def count_File_Number(split_pad_data_path: str):
     Args:
         split_pad_data_path (str): the split pad data path
     '''
-        
+
     file_num_Dict = {}
 
     for flag in ('train', 'val'):

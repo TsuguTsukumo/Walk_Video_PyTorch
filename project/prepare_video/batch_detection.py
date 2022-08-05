@@ -17,19 +17,19 @@ class batch_detection():
         # set for detection
         cfg = get_cfg()
         cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
-        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.9  # set threshold for this model
+        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.95  # set threshold for this model
         cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")
         self.predictor = DefaultPredictor(cfg)
 
         self.img_size = img_size
 
-    def get_person_bboxes(self, inp_img, predictor):
+    def get_person_bboxes(self, inp_img:torch.tensor, predictor):
 
         predictions = predictor(inp_img.cpu().detach().numpy())['instances'].to('cpu')
         boxes = predictions.pred_boxes if predictions.has("pred_boxes") else None
         scores = predictions.scores if predictions.has("scores") else None
         classes = np.array(predictions.pred_classes.tolist() if predictions.has("pred_classes") else None)
-        predicted_boxes = boxes[np.logical_and(classes==0, scores>0.9 )].tensor.cpu() # only person
+        predicted_boxes = boxes[np.logical_and(classes==0, scores>0.95 )].tensor.cpu() # only person
         return predicted_boxes, predictions
 
     def get_frame_box(self, inp_imgs:list):
@@ -37,31 +37,49 @@ class batch_detection():
         get the predict bbox from the inp_imgs
 
         Args:
-            inp_imgs (list): (c, t, h, w)
+            inp_imgs (list): (t, h, w, c)
 
         Returns:
-            list: frame_list, box_list, pred_list
+            list: frame_list (h, w, c), box_list, pred_list
         '''
 
         frame_list = []
         box_list = []
         pred_list = []
 
-        channel, frames, h, w = inp_imgs.size()
+        frames, h, w, c = inp_imgs.size()
         
         # 1 batch different frame
         for frame in range(frames):
 
-            inp_img = inp_imgs[:, frame, :, :]
-            inp_img = inp_img.permute(1, 2, 0) # (c, h, w) to (h, w, c)
+            inp_img = inp_imgs[frame, :, :, :] # (h, w, c)
 
             predicted_boxes, pred = self.get_person_bboxes(inp_img, self.predictor)
 
-            if predicted_boxes.shape == (1, 4): # just want one people bbox
+            #TODO change the logic
+            # determin which is the person and which is the doctor
+            if predicted_boxes.shape == (2, 4): # just want one people bbox
+            
+                x1_1, y1_1, x2_1, y2_1 = predicted_boxes[0]
+                x1_2, y1_2, x2_2, y2_2 = predicted_boxes[1]
+
+                box_height_1 = y2_1 - y1_1
+                box_height_2 = y2_2 - y1_2
+
+                if box_height_1 > box_height_2:
+                    predicted_boxes = predicted_boxes[0]
+                # else:
+                #     predicted_boxes = predicted_boxes[1]
+
+                    frame_list.append(inp_img)
+                    box_list.append(predicted_boxes.unsqueeze(dim=0))
+                    pred_list.append(pred)
+
+            elif predicted_boxes.shape == (1, 4): # one box, maybe person
 
                 frame_list.append(inp_img)
-                pred_list.append(pred)
                 box_list.append(predicted_boxes)
+                pred_list.append(pred)
 
         return frame_list, box_list, pred_list
 
@@ -72,13 +90,13 @@ class batch_detection():
         clip with the bbox, (x1-bias, y1) and padd with the (gap-bais) in left and right.
 
         Args:
-            imgs (list): imgs with (c, t, h, w)
+            imgs (list): imgs with (h, w, c)
             boxes (list): (x1, y1, x2, y2)
             img_size (int, optional): croped img size. Defaults to 256.
             bias (int, optional): the bias of bbox, with the (x1-bias) and (x2+bias). Defaults to 5.
 
         Returns:
-            tensor: (b, c, t, h, w)
+            tensor: (c, t, h, w)
         ''' 
 
         frame_list = []
@@ -105,18 +123,14 @@ class batch_detection():
 
         return torch.stack(frame_list, dim=1)
 
-    def handel_batch_imgs(self, batchs:torch.tensor):
+    def handel_batch_imgs(self, video_frame:torch.tensor):
 
-        # batch_num, channels, frames, h, w = batchs.size()
+        t, h, w, c = video_frame.shape()
 
-        c, t, h, w = batchs.size()
+        frame_list, box_list, pred_list = self.get_frame_box(video_frame) # h, w, c
 
-        # start 1 batch 
-        frame_list, box_list, pred_list = self.get_frame_box(batchs)
+        one_batch = self.clip_pad_with_bbox(frame_list, box_list, self.img_size) # c, t, h, w
 
-        one_batch = self.clip_pad_with_bbox(frame_list, box_list, self.img_size)
-
-        # return torch.stack(batch_list, dim=0)
         return one_batch
 
 # %%
