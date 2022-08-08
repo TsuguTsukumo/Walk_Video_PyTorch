@@ -1,8 +1,12 @@
 # %% 
 # %cd ..
 
-from ..parameters import get_parameters
-# from project.main import get_parameters
+import sys
+
+sys.path.append('/workspace/Walk_Video_PyTorch/project')
+sys.path
+
+from parameters import get_parameters
 
 from batch_detection import batch_detection
 

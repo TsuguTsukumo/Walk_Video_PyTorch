@@ -12,7 +12,7 @@ from torchvision.transforms.functional import crop, pad, resize
 # %%
 
 class batch_detection():
-    def __init__(self, img_size) -> None:
+    def __init__(self, img_size: int) -> None:
 
         # set for detection
         cfg = get_cfg()
@@ -32,6 +32,15 @@ class batch_detection():
         predicted_boxes = boxes[np.logical_and(classes==0, scores>0.95 )].tensor.cpu() # only person
         return predicted_boxes, predictions
 
+    def get_center_point(self, box:torch.tensor):
+
+        x1, y1, x2, y2 = box
+
+        new_x = (x2 - x1) / 2 + x1 
+        new_y = (y2 - y1) / 2 + y1
+
+        return (new_x, new_y), (x1, y1, x2, y2)
+
     def get_frame_box(self, inp_imgs:list):
         '''
         get the predict bbox from the inp_imgs
@@ -46,6 +55,7 @@ class batch_detection():
         frame_list = []
         box_list = []
         pred_list = []
+        CENTER_POINT = 0
 
         frames, h, w, c = inp_imgs.size()
         
@@ -56,32 +66,68 @@ class batch_detection():
 
             predicted_boxes, pred = self.get_person_bboxes(inp_img, self.predictor)
 
-            #TODO change the logic
             # determin which is the person and which is the doctor
             if predicted_boxes.shape == (2, 4): # just want one people bbox
             
-                x1_1, y1_1, x2_1, y2_1 = predicted_boxes[0]
-                x1_2, y1_2, x2_2, y2_2 = predicted_boxes[1]
+                center_point_1, coord_list_1 = self.get_center_point(predicted_boxes[0])
+                center_point_2, coord_list_2 = self.get_center_point(predicted_boxes[1])
 
-                box_height_1 = y2_1 - y1_1
-                box_height_2 = y2_2 - y1_2
+                if CENTER_POINT == 0:
 
-                if box_height_1 > box_height_2:
-                    predicted_boxes = predicted_boxes[0]
-                # else:
-                #     predicted_boxes = predicted_boxes[1]
+                    x1_1, y1_1, x2_1, y2_1 = coord_list_1
+                    x1_2, y1_2, x2_2, y2_2 = coord_list_2
 
-                    frame_list.append(inp_img)
-                    box_list.append(predicted_boxes.unsqueeze(dim=0))
-                    pred_list.append(pred)
+                    box_1_height = y2_1 - y1_1
+                    box_2_height = y2_2 - y1_2
 
-            elif predicted_boxes.shape == (1, 4): # one box, maybe person
+                    if box_1_height > box_2_height:
+                        predicted_boxes = predicted_boxes[1]
+                        CENTER_POINT = center_point_2
+                    else:
+                        predicted_boxes = predicted_boxes[0]
+                        CENTER_POINT = center_point_1
+
+                else:
+
+                    distance_1 = torch.abs(center_point_1[0] - CENTER_POINT[0])
+                    distance_2 = torch.abs(center_point_2[0] - CENTER_POINT[0])
+
+                    if distance_1 < distance_2:
+                        predicted_boxes = predicted_boxes[0]
+                        CENTER_POINT = center_point_1
+                    else:
+                        predicted_boxes = predicted_boxes[1]
+                        CENTER_POINT = center_point_2
 
                 frame_list.append(inp_img)
-                box_list.append(predicted_boxes)
+                box_list.append(predicted_boxes.unsqueeze(dim=0))
                 pred_list.append(pred)
 
-        return frame_list, box_list, pred_list
+            elif predicted_boxes.shape == (1, 4): # one box, maybe person
+                
+                center_point, _ = self.get_center_point(predicted_boxes[0])
+
+                if CENTER_POINT != 0:
+
+                    distance = torch.abs(center_point[0] - CENTER_POINT[0])
+
+                    if distance < 100:
+
+                        frame_list.append(inp_img)
+                        box_list.append(predicted_boxes)
+                        pred_list.append(pred)
+
+                        CENTER_POINT = center_point
+
+                else:
+
+                    frame_list.append(inp_img)
+                    box_list.append(predicted_boxes)
+                    pred_list.append(pred)
+
+                    CENTER_POINT = center_point
+
+        return frame_list, box_list, pred_list, CENTER_POINT
 
     def clip_pad_with_bbox(self, imgs: list, boxes: list, img_size: int = 256, bias:int = 3):
         '''
@@ -123,11 +169,11 @@ class batch_detection():
 
         return torch.stack(frame_list, dim=1)
 
-    def handel_batch_imgs(self, video_frame:torch.tensor):
+    def handel_batch_imgs(self, video_frame):
 
-        t, h, w, c = video_frame.shape()
+        t, h, w, c = video_frame.size()
 
-        frame_list, box_list, pred_list = self.get_frame_box(video_frame) # h, w, c
+        frame_list, box_list, pred_list, CENTER_POINT = self.get_frame_box(video_frame) # h, w, c
 
         one_batch = self.clip_pad_with_bbox(frame_list, box_list, self.img_size) # c, t, h, w
 
