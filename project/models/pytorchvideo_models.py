@@ -9,7 +9,6 @@ from pytorch_lightning import LightningModule
 import os
 
 from utils.metrics import get_Accuracy, get_Dice
-from models.batch_detection import batch_detection
 
 # %%
 class MakeVideoModule(nn.Module):
@@ -208,23 +207,23 @@ class WalkVideoClassificationLightningModule(LightningModule):
         return self.model_type
 
 # %%
-from parameters import get_parameters
-from dataloader.data_loader import WalkDataModule
+# from parameters import get_parameters
+# from dataloader.data_loader import WalkDataModule
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    param, unkonwn = get_parameters()
+#     param, unkonwn = get_parameters()
 
-    os.environ["CUDA_VISIBLE_DEVICES"]="1"
+#     os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
-    classification_module=WalkVideoClassificationLightningModule(param)
+#     classification_module=WalkVideoClassificationLightningModule(param)
 
-    data_module = WalkDataModule(param)
+#     data_module = WalkDataModule(param)
 
-    classification_module.training_step(data_module, 0)
+#     classification_module.training_step(data_module, 0)
 
-    summary=summary(classification_module, input_size=(6, 3, 8, 255, 255))
-    print(summary)
-    print(classification_module._get_name())
+#     summary=summary(classification_module, input_size=(6, 3, 8, 255, 255))
+#     print(summary)
+#     print(classification_module._get_name())
 
 # %%

@@ -211,37 +211,43 @@ class WalkDataModule(LightningDataModule):
 
 
 # %%
+# %cd ..
+# from parameters import get_parameters
 
-from parameters import get_parameters
+# # %% 
+# config, unkonwn = get_parameters()
 
-if __name__ == '__main__':
+# dm = WalkDataModule(config)
 
-    config, unkonwn = get_parameters()
-    
-    dm = WalkDataModule(config)
+# dm.prepare_data()
+# dm.setup()
 
-    dm.prepare_data()
-    dm.setup()
+# clip_pad_imgs = dm.train_dataloader()
 
-    clip_pad_imgs = dm.train_dataloader()
+# data = {"video": [], "class": [], 'tensorsize': []}
 
-    data = {"video": [], "class": [], 'tensorsize': []}
+# batch = next(iter(clip_pad_imgs))
 
-    # batch = next(iter(train_data_loader))
+# video = batch['video']
+# video_name = batch['video_name']
+# video_index = batch['video_index']
+# clip_index = batch['clip_index']
+# label = batch['label']
 
-    # location = 1
+# # %%
 
-    # plt.figure(figsize=(120, 120))
+# plt.figure(figsize=(256, 256))
 
-    # for num in range(len(batch['video_index'])):  # batch size
-    #     for i in range(batch['video'].size()[2]):  # 帧数
-    #         plt.title(batch['video_name'][num])
-    #         plt.subplot(len(batch['video_index']), batch['video'].size()[2], location)
-    #         plt.imshow(batch["video"][num].permute(1, 2, 3, 0)[i])
+# b, c, t, h, w = video.size()
 
-    #         location += 1
-    #         plt.axis("off")
+# for num in range(b):  # batch size
+#     for i in range(t):  # 帧数
+#         plt.title(video_name[num])
+#         plt.subplot(b, t, (num * t) + i + 1)
+#         plt.imshow(video[num].permute(1, 2, 3, 0)[i])
+#         # plt.imsave(fname='/workspace/Walk_Video_PyTorch/project/dataloader/imgs/%i.png' % (int((num*t) + i+ 1)), arr=(video[num].permute(1, 2, 3, 0)[i].numpy()))
 
-    # plt.show()
+#         plt.axis("off")
 
+# plt.show()
 # %%
