@@ -75,6 +75,8 @@ def train(hparams):
     progress_bar = TQDMProgressBar(refresh_rate=100)
     rich_model_summary = RichModelSummary(max_depth=2)
     rich_progress_bar = RichProgressBar(refresh_rate=hparams.batch_size)
+
+    # define the checkpoint becavier.
     model_check_point = ModelCheckpoint(
         filename='{epoch}-{val_loss:.2f}-{val_acc:.2f}',
         auto_insert_metric_name= True,
@@ -93,7 +95,7 @@ def train(hparams):
                       max_epochs=hparams.max_epochs,
                       logger=tb_logger,
                     #   log_every_n_steps=100,
-                      check_val_every_n_epoch=10,
+                      check_val_every_n_epoch=1,
                       callbacks=[progress_bar, rich_model_summary, table_metrics_callback, monitor, model_check_point],
                     #   deterministic=True 
                       )
