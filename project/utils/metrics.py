@@ -20,7 +20,7 @@ def get_Dice():
 # %%
 if __name__ == '__main__':
 
-    preds = torch.tensor([1, 0, 1, 0])
+    preds = torch.tensor([1, 1, 1, 0])
     target = torch.tensor([1, 1, 0, 0])
 
     dice = get_Dice()

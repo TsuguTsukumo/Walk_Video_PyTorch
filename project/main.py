@@ -3,7 +3,7 @@ import os
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning import loggers as pl_loggers
 # callbacks
-from pytorch_lightning.callbacks import TQDMProgressBar, RichModelSummary, RichProgressBar
+from pytorch_lightning.callbacks import TQDMProgressBar, RichModelSummary, RichProgressBar, ModelCheckpoint
 from pl_bolts.callbacks import PrintTableMetricsCallback, TrainingDataMonitor
 from utils.utils import get_ckpt_path
 
@@ -75,6 +75,13 @@ def train(hparams):
     progress_bar = TQDMProgressBar(refresh_rate=100)
     rich_model_summary = RichModelSummary(max_depth=2)
     rich_progress_bar = RichProgressBar(refresh_rate=hparams.batch_size)
+    model_check_point = ModelCheckpoint(
+        filename='{epoch}-{val_loss:.2f}-{val_acc:.2f}',
+        auto_insert_metric_name= True,
+        monitor="val_acc",
+        mode="max",
+
+    )
 
     # bolts callbacks
     table_metrics_callback = PrintTableMetricsCallback()
@@ -85,9 +92,9 @@ def train(hparams):
                       gpus=hparams.gpu_num,
                       max_epochs=hparams.max_epochs,
                       logger=tb_logger,
-                      log_every_n_steps=100,
-                      check_val_every_n_epoch=1,
-                      callbacks=[progress_bar, rich_model_summary, table_metrics_callback, monitor],
+                    #   log_every_n_steps=100,
+                      check_val_every_n_epoch=10,
+                      callbacks=[progress_bar, rich_model_summary, table_metrics_callback, monitor, model_check_point],
                     #   deterministic=True 
                       )
 

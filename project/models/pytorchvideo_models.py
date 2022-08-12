@@ -191,7 +191,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
         # log the test loss, and test acc, in step and in epoch
         self.log_dict({'test_loss': test_loss, 'test_acc': self.accuracy}, on_step=True, on_epoch=True)
 
-        return loss, accuracy
+        return test_loss, accuracy
         
 
     def configure_optimizers(self):
