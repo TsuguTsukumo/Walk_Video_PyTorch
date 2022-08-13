@@ -171,6 +171,8 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         final_acc = torch.sum(val_metric) / len(val_metric)
 
+        print(final_acc)
+
         return final_acc
 
     def test_step(self, batch, batch_idx):
@@ -184,7 +186,8 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         test_pred = self.model(batch["video"])
 
-        test_loss = F.cross_entropy(test_pred, batch["label"])
+        # test_loss = F.cross_entropy(test_pred, batch["label"])
+        test_loss = F.cross_entropy(F.softmax(test_pred, dim=-1), batch["label"])
 
         # calculate acc 
         accuracy = self.accuracy(F.softmax(test_pred, dim=-1), batch["label"])
