@@ -116,6 +116,22 @@ class WalkDataModule(LightningDataModule):
             ]
         )
 
+        self.test_transform = Compose(
+            [
+                ApplyTransformToKey(
+                    key="video",
+                    transform=Compose(
+                        [
+                            UniformTemporalSubsample(self.uniform_temporal_subsample_num),
+                            # Div255(),
+                            # Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
+                            Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
+                        ]
+                    )
+                )
+            ]
+        )
+
     def prepare_data(self) -> None:
 
         # split meta dataset random to tar file path
@@ -157,7 +173,7 @@ class WalkDataModule(LightningDataModule):
             self.test_pred_dataset = WalkDataset(
                 data_path=os.path.join(self._SPLIT_PAD_DATA_PATH, "val"),
                 clip_sampler=make_clip_sampler("uniform", self._CLIP_DURATION),
-                transform=self.transform_for_classification
+                transform=self.test_transform
             )
 
     def train_dataloader(self) -> DataLoader:

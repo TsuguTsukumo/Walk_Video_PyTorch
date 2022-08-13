@@ -188,14 +188,12 @@ class WalkVideoClassificationLightningModule(LightningModule):
             batch_idx (_type_): _description_
         '''
 
-        target = batch["label"].detach().clone()
-
         test_pred = self.model(batch["video"])
 
-        test_loss = F.cross_entropy(test_pred, target)
+        test_loss = F.cross_entropy(test_pred, batch["label"])
 
         # calculate acc 
-        accuracy = self.accuracy(F.softmax(test_pred, dim=-1), target)
+        accuracy = self.accuracy(F.softmax(test_pred, dim=-1), batch["label"])
         # self.dice(test_pred, target)
 
         # log the test loss, and test acc, in step and in epoch
@@ -203,6 +201,8 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         return test_loss, accuracy
         
+    def test_epoch_end(self, outputs):
+        return super().test_epoch_end(outputs)
 
     def configure_optimizers(self):
         '''

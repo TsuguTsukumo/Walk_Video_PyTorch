@@ -82,6 +82,8 @@ def train(hparams):
         auto_insert_metric_name= True,
         monitor="val_acc",
         mode="max",
+        save_last=True,
+        save_top_k=5,
 
     )
 
