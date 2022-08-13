@@ -163,21 +163,15 @@ class WalkVideoClassificationLightningModule(LightningModule):
         # log the val loss and val acc, in step and in epoch.
         self.log_dict({'val_loss': val_loss, 'val_acc': self.accuracy}, on_step=False, on_epoch=True)
         
-        return val_loss, accuracy
+        return accuracy
 
-    def validation_epoch_end(self, outputs) -> None:
+    def validation_epoch_end(self, outputs):
         
-        # self.log('val_acc_epoch', self.accuracy)
-        pass
+        val_metric = torch.stack(outputs, dim=0)
 
-    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
-        # todo
-        # y_hat = self.model(batch["video"])
-        # loss = F.cross_entropy(y_hat, batch["label"])
-        # self.log("pred_loss", loss)
+        final_acc = torch.sum(val_metric) / len(val_metric)
 
-        # return loss
-        pass
+        return final_acc
 
     def test_step(self, batch, batch_idx):
         '''
@@ -199,10 +193,16 @@ class WalkVideoClassificationLightningModule(LightningModule):
         # log the test loss, and test acc, in step and in epoch
         self.log_dict({'test_loss': test_loss, 'test_acc': self.accuracy}, on_step=False, on_epoch=True)
 
-        return test_loss, accuracy
+        return accuracy
         
     def test_epoch_end(self, outputs):
-        return super().test_epoch_end(outputs)
+
+        test_metric = torch.stack(outputs, dim=0)
+
+        final_acc = torch.sum(test_metric) / len(test_metric)
+        
+        print(final_acc)
+        return final_acc
 
     def configure_optimizers(self):
         '''
