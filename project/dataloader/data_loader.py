@@ -16,7 +16,7 @@ from pytorchvideo.transforms import (
     ShortSideScale,
     UniformTemporalSubsample,
     Div255,
-    create_video_transform
+    create_video_transform,
 )
 
 from typing import Any, Callable, Dict, Optional, Type
@@ -105,8 +105,9 @@ class WalkDataModule(LightningDataModule):
                             Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
                             # RandomShortSideScale(min_size=256, max_size=320),
                             # ShortSideScale(self._IMG_SIZE),
-                            # RandomCrop(244),
-                            Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
+                            
+                            RandomCrop(self._IMG_SIZE),
+                            # Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
                             RandomHorizontalFlip(p=0.5),
                         ]
                     ),
@@ -233,6 +234,10 @@ class WalkDataModule(LightningDataModule):
 # # %% 
 # config, unkonwn = get_parameters()
 
+# config.img_size = 224
+# config.clip_duration = 1 
+# config.batch_size = 8
+
 # dm = WalkDataModule(config)
 
 # dm.prepare_data()
@@ -266,4 +271,3 @@ class WalkDataModule(LightningDataModule):
 #         plt.axis("off")
 
 # plt.show()
-# %%

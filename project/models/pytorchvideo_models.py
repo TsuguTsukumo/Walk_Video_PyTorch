@@ -161,7 +161,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
         accuracy = self.accuracy(F.softmax(y_hat, dim=-1), batch["label"])
 
         # log the val loss and val acc, in step and in epoch.
-        self.log_dict({'val_loss': val_loss, 'val_acc': self.accuracy}, on_step=False, on_epoch=True)
+        self.log_dict({'val_loss': val_loss, 'val_acc': accuracy}, on_step=False, on_epoch=True)
         
         return accuracy
 
@@ -216,7 +216,8 @@ class WalkVideoClassificationLightningModule(LightningModule):
             lr_scheduler: the selected lr scheduler.
         '''
 
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        # return torch.optim.Adam(self.parameters(), lr=self.lr)
+        return torch.optim.SGD(self.parameters(), lr=self.lr)
 
     def _get_name(self):
         return self.model_type

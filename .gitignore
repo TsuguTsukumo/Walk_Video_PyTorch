@@ -130,3 +130,4 @@ MNIST
 
 false/
 logs/
+pretrained_weight/

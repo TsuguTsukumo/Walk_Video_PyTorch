@@ -78,7 +78,7 @@ def train(hparams):
 
     # define the checkpoint becavier.
     model_check_point = ModelCheckpoint(
-        filename='{epoch}-{val_loss:.2f}-{val_acc:.2f}',
+        filename='{epoch}-{val_loss:.2f}-{val_acc:.4f}',
         auto_insert_metric_name= True,
         monitor="val_acc",
         mode="max",
