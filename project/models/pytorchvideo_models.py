@@ -1,4 +1,5 @@
 # %%
+from cProfile import label
 from torchinfo import summary
 from pytorchvideo.models import x3d, resnet, csn, slowfast, r2plus1d
 import torch
@@ -8,7 +9,7 @@ import torch.nn.functional as F
 from pytorch_lightning import LightningModule
 import os
 
-from utils.metrics import get_Accuracy, get_Dice
+from utils.metrics import get_AUC, get_Accuracy, get_Average_precision, get_Dice, get_F1Score, get_Precision_Recall
 
 # %%
 class MakeVideoModule(nn.Module):
@@ -40,7 +41,8 @@ class MakeVideoModule(nn.Module):
         model_depth=self.model_depth,
         model_num_class=self.model_class_num,
         norm=nn.BatchNorm3d,
-        activation=nn.ReLU,
+        # activation=nn.Sigmoid, # todo try sigmoid
+        activation = nn.ReLU,
         )
 
     def make_walk_x3d(self) -> nn.Module:
@@ -77,9 +79,6 @@ class WalkVideoClassificationLightningModule(LightningModule):
         self.model_type=hparams.model
         self.img_size = hparams.img_size
 
-        # save the hyperparameters to the file and ckpt
-        self.save_hyperparameters()
-        
         self.lr=hparams.lr
 
         self.model = MakeVideoModule(hparams)
@@ -97,6 +96,13 @@ class WalkVideoClassificationLightningModule(LightningModule):
         # select the metrics
         self.accuracy = get_Accuracy()
         self.dice = get_Dice()
+        self.average_precision = get_Average_precision()
+        self.AUC = get_AUC()
+        self.f1_score = get_F1Score()
+        self.precision_recall = get_Precision_Recall()
+
+        # save the hyperparameters to the file and ckpt
+        self.save_hyperparameters()
 
     def forward(self, x):
         return self.model(x)
@@ -113,15 +119,15 @@ class WalkVideoClassificationLightningModule(LightningModule):
             loss: the calc loss
         '''
 
+        label = batch['label'].detach()
         # classification task
         y_hat=self.model(batch["video"])
 
-        loss=F.cross_entropy(y_hat, batch["label"])
+        y_hat_softmax = torch.softmax(y_hat, dim=-1)
 
-        accuracy = self.accuracy(F.softmax(y_hat, dim=-1), batch["label"])
+        loss=F.cross_entropy(y_hat, label)
 
-        values = {'train_loss', loss.item(), 'train_accuracy', self.accuracy}
-        # self.log_dict(values, on_step=True, on_epoch=True)
+        accuracy = self.accuracy(y_hat_softmax, label)
 
         self.log('train_loss', loss)
         self.log('train_acc', accuracy)
@@ -153,15 +159,21 @@ class WalkVideoClassificationLightningModule(LightningModule):
             accuract: selected accuracy result.
         '''
 
-        y_hat=self.model(batch["video"])
+        label = batch['label'].detach()
 
-        val_loss=F.cross_entropy(y_hat, batch["label"])
+        preds = self.model(batch["video"])
+
+        preds_softmax = torch.softmax(preds, dim=-1)
+
+        val_loss=F.cross_entropy(preds, label)
 
         # calc the metric, function from torchmetrics
-        accuracy = self.accuracy(F.softmax(y_hat, dim=-1), batch["label"])
+        accuracy = self.accuracy(preds_softmax, label)
+
+        average_precision = self.average_precision(preds_softmax, label)
 
         # log the val loss and val acc, in step and in epoch.
-        self.log_dict({'val_loss': val_loss, 'val_acc': accuracy}, on_step=False, on_epoch=True)
+        self.log_dict({'val_loss': val_loss, 'val_acc': accuracy, 'val_average_precision': average_precision}, on_step=False, on_epoch=True)
         
         return accuracy
 
@@ -184,17 +196,26 @@ class WalkVideoClassificationLightningModule(LightningModule):
             batch_idx (_type_): _description_
         '''
 
-        test_pred = self.model(batch["video"])
+        labels = batch['label'].detach()
 
-        # test_loss = F.cross_entropy(test_pred, batch["label"])
-        test_loss = F.cross_entropy(F.softmax(test_pred, dim=-1), batch["label"])
+        preds = self.model(batch["video"])
+
+        preds_softmax = torch.softmax(preds, dim=-1)
+
+        test_loss = F.cross_entropy(preds, labels)
 
         # calculate acc 
-        accuracy = self.accuracy(F.softmax(test_pred, dim=-1), batch["label"])
+        accuracy = self.accuracy(preds_softmax, labels)
+
+        average_precision = self.average_precision(preds_softmax, labels)
+        # AUC = self.AUC(F.softmax(test_pred, dim=-1), batch["label"])
+        f1_score = self.f1_score(preds_softmax, labels)
+        # precision, recall, threshold = self.precision_recall(F.softmax(test_pred, dim=-1), batch["label"])
+
         # self.dice(test_pred, target)
 
         # log the test loss, and test acc, in step and in epoch
-        self.log_dict({'test_loss': test_loss, 'test_acc': self.accuracy}, on_step=False, on_epoch=True)
+        self.log_dict({'test_loss': test_loss, 'test_acc': self.accuracy, 'test_average_precision': self.average_precision, 'test_f1_score': self.f1_score}, on_step=False, on_epoch=True)
 
         return accuracy
         
@@ -205,7 +226,6 @@ class WalkVideoClassificationLightningModule(LightningModule):
         final_acc = torch.sum(test_metric) / len(test_metric)
         
         print(final_acc)
-        return final_acc
 
     def configure_optimizers(self):
         '''
@@ -216,8 +236,8 @@ class WalkVideoClassificationLightningModule(LightningModule):
             lr_scheduler: the selected lr scheduler.
         '''
 
-        # return torch.optim.Adam(self.parameters(), lr=self.lr)
-        return torch.optim.SGD(self.parameters(), lr=self.lr)
+        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        # return torch.optim.SGD(self.parameters(), lr=self.lr)
 
     def _get_name(self):
         return self.model_type

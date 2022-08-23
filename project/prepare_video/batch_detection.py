@@ -169,66 +169,38 @@ class batch_detection():
 
         return torch.stack(frame_list, dim=1)
 
-    def handel_batch_imgs(self, video_frame):
+    def clip_with_bbox(self, imgs: list, boxes: list, img_size: int = 256):
+        
+        frame_list = []
+
+        for num in range(len(imgs)):
+
+            x1, y1, x2, y2 = boxes[num].int().squeeze() # dtype must int for resize, crop function
+
+            box_width = x2 - x1
+            box_height = y2 - y1 
+
+            width_gap = ((box_height - box_width) / 2 ).int() # keep int type
+
+            img = imgs[num].permute(2, 0, 1) # (h, w, c) to (c, h, w), for pytorch function
+
+            croped_img = crop(img, top=y1, left=(x1 - width_gap), height=box_height, width=box_height)
+
+            resized_img = resize(croped_img, size=(img_size, img_size))
+
+            frame_list.append(resized_img)
+
+        return torch.stack(frame_list, dim=1)
+
+    def handel_batch_imgs(self, video_frame, flag: str = 'clip'):
 
         t, h, w, c = video_frame.size()
 
         frame_list, box_list, pred_list, CENTER_POINT = self.get_frame_box(video_frame) # h, w, c
 
-        one_batch = self.clip_pad_with_bbox(frame_list, box_list, self.img_size) # c, t, h, w
+        if flag == 'clip':
+            one_batch = self.clip_with_bbox(frame_list, box_list, self.img_size)
+        else:
+            one_batch = self.clip_pad_with_bbox(frame_list, box_list, self.img_size) # c, t, h, w
 
         return one_batch
-
-# %%
-# %cd ..
-# from dataloader.data_loader import WalkDataModule
-# from parameters import get_parameters
-
-# # %%
-
-# parames, unkonwn = get_parameters()
-
-# parames.uniform_temporal_subsample_num = 30
-# parames.clip_duration = 3
-
-# data_modeule = WalkDataModule(parames)
-# data_modeule.setup()
-# train_dataloader = data_modeule.train_dataloader()
-
-# batch = next(iter(train_dataloader))
-
-# video = batch['video']
-# label = batch['label']
-
-# # %% 
-# get_bbox = batch_detection(img_size=parames.img_size)
-
-# frame_list, box_list, predict_list = get_bbox.get_frame_box(video[0])
-
-# # %% 
-# from matplotlib import pyplot as plt
-
-# plt.figure(figsize=(256, 256))
-
-# for frame in range(len(frame_list)):
-#     plt.subplot(len(frame_list), 1, frame + 1)
-
-#     plt.imshow(frame_list[frame] / 255)
-
-# # %% 
-# clip_pad_imgs = get_bbox.handel_batch_imgs(video)
-
-# b, c, t, h, w = clip_pad_imgs.shape
-
-# plt.figure(figsize=(256, 256))
-
-# for frame in range(t):
-#     plt.subplot(t, 1, frame + 1)
-
-#     plt.imshow(clip_pad_imgs[0].permute(1, 2, 3, 0)[frame] / 256 )
-
-# # %%
-# from torchvision.io import write_video
-
-# write_video('test.mp4', video_array=clip_pad_imgs[0].permute(1, 2, 3, 0), fps=30, video_codec="h264")
-# # %%

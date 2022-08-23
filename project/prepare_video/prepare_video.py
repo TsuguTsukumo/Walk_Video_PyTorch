@@ -1,12 +1,8 @@
 # %% 
-# %cd ..
-
 import sys
 
 sys.path.append('/workspace/Walk_Video_PyTorch/project')
 sys.path
-
-from parameters import get_parameters
 
 from batch_detection import batch_detection
 
@@ -15,6 +11,7 @@ import torch
 from torchvision.io import read_video, read_video_timestamps, write_video
 
 import os 
+from argparse import ArgumentParser
 
 from utils.utils import make_folder, count_File_Number
 # %%
@@ -112,7 +109,7 @@ def get_final_video_path_Dict(prefix_path_list: list):
     return final_video_path_Dict
                 
 # %% 
-def read_and_write_video_from_List(path_list:list, img_size:int = 256):
+def read_and_write_video_from_List(path_list:list, img_size:int = 256, video_save_path: str = '', flag:str = 'clip'):
 
     # instance batch detection class.
     get_bbox = batch_detection(img_size=img_size)
@@ -120,22 +117,47 @@ def read_and_write_video_from_List(path_list:list, img_size:int = 256):
     for path in path_list:
 
         after_path = path[24:]
-        video_save_path = os.path.join(SPLIT_PAD_DATA_PATH, after_path)
+        save_video_path = os.path.join(video_save_path, after_path)
 
         path_split_file_name = path.split('/')[-1]
-        video_save_path_file_name = video_save_path.split('/')[-1]
+        video_save_path_file_name = save_video_path.split('/')[-1]
 
         # if path_split_file_name != video_save_path_file_name:
 
         video_frame, audio_frame, video_info = read_video(path) # (t, h, w, c)
-        clip_pad_imgs = get_bbox.handel_batch_imgs(video_frame) # c, t, h, w
 
-        write_video(filename=video_save_path, video_array=clip_pad_imgs.permute(1, 2, 3, 0), fps=30, video_codec='h264') # (c, t, h, w) to (t, h, w, c)
+        if flag == 'clip':
+            clip_pad_imgs = get_bbox.handel_batch_imgs(video_frame, flag=flag)
+        else:
+            clip_pad_imgs = get_bbox.handel_batch_imgs(video_frame, flag=flag) # c, t, h, w
+
+        write_video(filename=save_video_path, video_array=clip_pad_imgs.permute(1, 2, 3, 0), fps=30, video_codec='h264') # (c, t, h, w) to (t, h, w, c)
 
         print(video_info['video_fps'], path, video_frame.shape)
         print('clip %i frames!, %i frams lost!' % (clip_pad_imgs.size()[1], video_frame.size()[0] - clip_pad_imgs.size()[1]))
 
     return video_frame, path, video_info['video_fps']
+
+
+# %%
+
+def get_parameters():
+
+    parser = ArgumentParser()
+
+    # model hyper-parameters
+    parser.add_argument('--img_size', type=int, default=512)
+
+    # Training setting
+    parser.add_argument('--num_workers', type=int, default=2, help='dataloader for load video')
+
+    # Path
+    parser.add_argument('--data_path', type=str, default="/workspace/data/dataset/", help='meta dataset path')
+    parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/splt_pad_dataset", help="split and pad dataset with detection method.")
+    parser.add_argument('--split_data_path', type=str, default="/workspace/data/splt_dataset", help="split dataset with detection method.")
+
+
+    return parser.parse_known_args()
 
 # %%
 if __name__ == '__main__':
@@ -144,9 +166,13 @@ if __name__ == '__main__':
     parames, unkonwn = get_parameters()
     
     DATA_PATH = parames.data_path
-    SPLIT_PAD_DATA_PATH = parames.split_pad_data_path
     IMG_SIZE = parames.img_size
 
+    SPLIT_PAD_DATA_PATH = parames.split_pad_data_path + "_" + str(IMG_SIZE)
+    SPLIT_DATA_PATH = parames.split_data_path + "_" + str(IMG_SIZE)
+
+    # make folder with img size
+    make_split_pad_folder(SPLIT_DATA_PATH)
     make_split_pad_folder(SPLIT_PAD_DATA_PATH)
 
     prefix_path_list = get_Diease_Path_List(DATA_PATH) # four folder, train/ASD, train/ASD_not, val/ASD, val/ASD_not
@@ -158,9 +184,12 @@ if __name__ == '__main__':
         now_video_path_list = final_video_path_Dict[key]
         now_video_path_list.sort()
 
-        video_frame, now_video_path_list, video_info = read_and_write_video_from_List(now_video_path_list)
+        video_frame, now_video_path_list, video_info = read_and_write_video_from_List(now_video_path_list, img_size=IMG_SIZE, video_save_path=SPLIT_DATA_PATH, flag='clip')
+        # video_frame, now_video_path_list, video_info = read_and_write_video_from_List(now_video_path_list, img_size=IMG_SIZE, video_save_path=SPLIT_PAD_DATA_PATH, flag='pad')
 
     print('Finish split and pad video!')
+
+    count_File_Number(SPLIT_DATA_PATH)
     count_File_Number(SPLIT_PAD_DATA_PATH)
 
 

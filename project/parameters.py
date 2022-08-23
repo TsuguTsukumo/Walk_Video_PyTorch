@@ -13,7 +13,7 @@ def get_parameters():
 
     # Training setting
     parser.add_argument('--max_epochs', type=int, default=100, help='numer of epochs of training')
-    parser.add_argument('--batch_size', type=int, default=10, help='batch size for the dataloader')
+    parser.add_argument('--batch_size', type=int, default=1, help='batch size for the dataloader')
     parser.add_argument('--num_workers', type=int, default=2, help='dataloader for load video')
     parser.add_argument('--clip_duration', type=int, default=1, help='clip duration for the video')
     parser.add_argument('--uniform_temporal_subsample_num', type=int, default=16, help='num frame from the clip duration')
@@ -26,7 +26,7 @@ def get_parameters():
 
     # Path
     parser.add_argument('--data_path', type=str, default="/workspace/data/dataset/", help='meta dataset path')
-    # parser.add_argument('--split_data_path', type=str, default="/workspace/data/dataset/", help="split dataset path")
+    parser.add_argument('--split_data_path', type=str, default="/workspace/data/splt_dataset_512", help="split dataset path")
     parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/splt_pad_dataset", help="split and pad dataset with detection method.")
 
     parser.add_argument('--log_path', type=str, default='./logs', help='the lightning logs saved path')
@@ -37,4 +37,3 @@ def get_parameters():
     # parser = Trainer.add_argparse_args(parser)
 
     return parser.parse_known_args()
-

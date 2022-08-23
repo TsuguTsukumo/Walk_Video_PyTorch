@@ -26,12 +26,12 @@ opt.num_workers = 8
 opt.batch_size = 4
 opt.gpu_num = 1
 
-opt.version = '0811'
+opt.version = '0821_2_16'
 opt.model = "resnet"
 opt.model_depth = 50
 
-opt.clip_duration = 3
-opt.uniform_temporal_subsample_num = 64
+opt.clip_duration = 2
+opt.uniform_temporal_subsample_num = 16
 opt.version = opt.version + '_' + opt.model + '_depth' + str(opt.model_depth)
 
 
@@ -42,12 +42,12 @@ model = WalkVideoClassificationLightningModule(opt)
 
 # get last ckpt path
 # ckpt_path = get_ckpt_path(opt)
-ckpt_path = '/workspace/logs/resnet/test_resnet_depth50/checkpoints/epoch=7-val_loss=2.83-val_acc=0.50.ckpt'
+ckpt_path = '/workspace/logs/resnet/test_resnet_depth50/checkpoints/epoch=14-val_loss=4.25-val_acc=0.3105.ckpt'
 
 # model = WalkVideoClassificationLightningModule.load_from_checkpoint(ckpt_path)
-# model = model.load_from_checkpoint(ckpt_path)
+model = model.load_from_checkpoint(ckpt_path)
 
-# model.eval()
+model.eval()
 
 # clear_output()
 print(ckpt_path)
@@ -74,8 +74,7 @@ trainer = Trainer(
     # deterministic=True,
 )
 
-final_acc = trainer.test(dataloaders=module, model=model, ckpt_path=ckpt_path)
-
+final_acc = trainer.test(dataloaders=module, model=model)
 
 # %%
 # trainer.validate(dataloaders=module, model=model, ckpt_path=ckpt_path)

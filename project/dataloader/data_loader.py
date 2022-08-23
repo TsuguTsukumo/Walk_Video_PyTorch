@@ -74,6 +74,7 @@ class WalkDataModule(LightningDataModule):
         super().__init__()
         self._DATA_PATH = opt.data_path
         self._SPLIT_PAD_DATA_PATH = opt.split_pad_data_path
+        self._SPLIT_DATA_PATH = opt.split_data_path
         self._CLIP_DURATION = opt.clip_duration
 
         self._BATCH_SIZE = opt.batch_size
@@ -82,67 +83,48 @@ class WalkDataModule(LightningDataModule):
 
         self.uniform_temporal_subsample_num = opt.uniform_temporal_subsample_num
 
-        # self.transform_for_detection = Compose([
-        #     ApplyTransformToKey(
-        #         key="video",
-        #         transform=Compose([
-        #             UniformTemporalSubsample(self.uniform_temporal_subsample_num),
-        #             Div255(),
-        #             Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
-        #             RandomHorizontalFlip(p=0.5)
-        #         ])
-        #     )
-        # ])
-
-        self.transform_for_classification = Compose(
+        self.train_transform = Compose(
             [
                 ApplyTransformToKey(
                     key="video",
                     transform=Compose(
                         [
                             UniformTemporalSubsample(self.uniform_temporal_subsample_num),
+
                             Div255(),
                             Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
+
                             # RandomShortSideScale(min_size=256, max_size=320),
+                            # RandomCrop(self._IMG_SIZE),
+
                             # ShortSideScale(self._IMG_SIZE),
                             
-                            RandomCrop(self._IMG_SIZE),
-                            # Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
+                            Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
                             RandomHorizontalFlip(p=0.5),
                         ]
                     ),
                 ),
-                #todo try this framework, from pytorchvideo
-                # create_video_transform(mode="train")
             ]
         )
 
-        self.test_transform = Compose(
-            [
-                ApplyTransformToKey(
-                    key="video",
-                    transform=Compose(
-                        [
-                            UniformTemporalSubsample(self.uniform_temporal_subsample_num),
-                            Div255(),
-                            # Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
-                            Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
-                        ]
-                    )
-                )
-            ]
+        # self.train_transform = create_video_transform(
+        #     mode='train',
+        #     video_key='video',
+        #     num_samples=self.uniform_temporal_subsample_num,
+        #     crop_size=self._IMG_SIZE,
+        #     convert_to_float=False,
+        #     aug_type='augmix'
+        # )
+
+        self.val_transform = create_video_transform(
+            mode='val',
+            video_key='video',
+            num_samples=self.uniform_temporal_subsample_num,
+            crop_size=self._IMG_SIZE,
+            convert_to_float=False,
         )
 
     def prepare_data(self) -> None:
-
-        # split meta dataset random to tar file path
-        # todo three split class [train, val, predict]
-        # random_split_video(
-        #     fileDir=self._DATA_PATH,
-        #     tarDir=self._SPLIT_DATA_PATH,
-        #     rate=0.8,
-        #     disease_flag=("ASD", "LCS")
-        # )
         pass
 
     def setup(self, stage: Optional[str] = None) -> None:
@@ -156,25 +138,23 @@ class WalkDataModule(LightningDataModule):
         # if stage == "fit" or stage == None:
         if stage in ("fit", None):
             self.train_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_PAD_DATA_PATH, "train"),
+                data_path=os.path.join(self._SPLIT_DATA_PATH, "train"),
                 clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
-                transform=self.transform_for_classification,
+                transform=self.train_transform,
             )
 
         if stage in ("fit", "validate", None):
             self.val_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_PAD_DATA_PATH, "val"),
+                data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
                 clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
-                transform=self.transform_for_classification
+                transform=self.train_transform,
             )
 
-        # FIXME
-        # no data so have not predict dataset 
         if stage in ("predict", "test", None):
             self.test_pred_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_PAD_DATA_PATH, "val"),
+                data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
                 clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
-                transform=self.test_transform
+                transform=self.train_transform
             )
 
     def train_dataloader(self) -> DataLoader:
@@ -235,8 +215,8 @@ class WalkDataModule(LightningDataModule):
 # config, unkonwn = get_parameters()
 
 # config.img_size = 224
-# config.clip_duration = 1 
-# config.batch_size = 8
+# config.clip_duration = 2
+# config.batch_size = 4
 
 # dm = WalkDataModule(config)
 
@@ -271,3 +251,5 @@ class WalkDataModule(LightningDataModule):
 #         plt.axis("off")
 
 # plt.show()
+
+# # %%
