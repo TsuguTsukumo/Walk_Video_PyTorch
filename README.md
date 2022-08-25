@@ -19,14 +19,25 @@ Conference
 -->   
 </div>
  
-## Description 
+## Description  
+
 📓 This project made with the PyTorch, PyTorch Lightning, PyTorch Video.
 
-What it does   
+This project implements the task of classifying different medical diseases.
+
+The current phase performs a dichotomous classification task for four different disorders. classification of ASD and non-ASD.
+
+The whole procedure is divided into two steps:  
+
+1. using the detection method to extract the character-centered region and save it as a video.
+2. put the 1. processed video into 3D CNN network for training.
+
+Detailed comments are written for most of the methods and classes.
+Have a nice code. 😄
 
 ## How to run
 
-First, install dependencies   
+1. install dependencies
 
 ``` bash
 # clone project   
@@ -38,7 +49,7 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
-Next, navigate to any file and run it.
+2. navigate to any file and run it.
 
 ```bash
 # module folder
@@ -48,42 +59,61 @@ cd Walk_Video_PyTorch/
 python project/main.py [option] > logs/output_log/xxx.log 
 ```
 
-## Imports
+### one stage  
 
-This project is setup as a package which means you can now easily import any file into any other file like so:
+In this stage, the interface provided by [detector2](https://detectron2.readthedocs.io/en/latest/index.html) is used for video pre-processing, in order to extract the area centered on the person and save a series of frames as video with a uniform FPS = 30.
 
-```python
-from project.datasets.mnist import mnist
-from project.lit_classifier_main import LitClassifier
-from pytorch_lightning import Trainer
+The implementation of the prepare_video.py file,  
 
-# model
-model = LitClassifier()
-
-# data
-train, val, test = mnist()
-
-# train
-trainer = Trainer()
-trainer.fit(model, train, val)
-
-# test using the best model!
-trainer.test(test_dataloaders=test)
-```
-
-## Dataset
-
-## Implementation
-
-``` python
+``` python  
+usage: prepare_video.py [-h] [--img_size IMG_SIZE] [--num_workers NUM_WORKERS] [--data_path DATA_PATH] [--split_pad_data_path SPLIT_PAD_DATA_PATH] [--split_data_path SPLIT_DATA_PATH]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --model {resnet,csn}
+  --img_size IMG_SIZE
+  --num_workers NUM_WORKERS
+                        dataloader for load video
+  --data_path DATA_PATH
+                        meta dataset path
+  --split_pad_data_path SPLIT_PAD_DATA_PATH
+                        split and pad dataset with detection method.
+  --split_data_path SPLIT_DATA_PATH
+                        split dataset with detection method.
+
+```
+
+for example,  
+
+``` python  
+cd Walk_Video_PyTorch/project/prepare_video/
+
+python prepare_video.py --img_size 512 --data_path [meta dataset path] --split_pad_data_path [split and pad dataset path] --split_data_path [split dataset path] > ./split_log.log &
+
+```
+
+⚠️ You need to replace the content in [ ] with your own actual path.
+
+### two stage  
+
+In this stage, the pre-processed video needs to be read and fed to the 3d cnn network for training.
+
+the implementation of the main.py file.  
+
+``` python
+
+usage: main.py [-h] [--model {resnet,csn,x3d}] [--img_size IMG_SIZE] [--version VERSION] [--model_class_num MODEL_CLASS_NUM] [--model_depth {50,101,152}] [--max_epochs MAX_EPOCHS] [--batch_size BATCH_SIZE] [--num_workers NUM_WORKERS] [--clip_duration CLIP_DURATION]
+               [--uniform_temporal_subsample_num UNIFORM_TEMPORAL_SUBSAMPLE_NUM] [--gpu_num {0,1}] [--lr LR] [--beta1 BETA1] [--beta2 BETA2] [--data_path DATA_PATH] [--split_data_path SPLIT_DATA_PATH] [--split_pad_data_path SPLIT_PAD_DATA_PATH] [--log_path LOG_PATH]
+               [--pretrained_model PRETRAINED_MODEL]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --model {resnet,csn,x3d}
   --img_size IMG_SIZE
   --version VERSION     the version of logger, such data
   --model_class_num MODEL_CLASS_NUM
                         the class num of model
+  --model_depth {50,101,152}
+                        the depth of used model
   --max_epochs MAX_EPOCHS
                         numer of epochs of training
   --batch_size BATCH_SIZE
@@ -92,25 +122,71 @@ optional arguments:
                         dataloader for load video
   --clip_duration CLIP_DURATION
                         clip duration for the video
+  --uniform_temporal_subsample_num UNIFORM_TEMPORAL_SUBSAMPLE_NUM
+                        num frame from the clip duration
+  --gpu_num {0,1}       the gpu number whicht to train
   --lr LR               learning rate for optimizer
   --beta1 BETA1
   --beta2 BETA2
-  --pretrained_model PRETRAINED_MODEL
   --data_path DATA_PATH
                         meta dataset path
   --split_data_path SPLIT_DATA_PATH
                         split dataset path
+  --split_pad_data_path SPLIT_PAD_DATA_PATH
+                        split and pad dataset with detection method.
   --log_path LOG_PATH   the lightning logs saved path
+  --pretrained_model PRETRAINED_MODEL
+                        if use the pretrained model for training.
+```
 
+for example,  
+
+``` python  
+
+python project/main.py --version [the version for train] --model resnet --model_depth 50 --img_size [img size] --batch_size [batch size] --clip_duration [the clip duration] --uniform_temporal_subsample_num [how many frames for train] --num_workers 16 > logs/output_logs/[version].log 2>&1 & 
+
+```
+
+⚠️ You need to replace the content in [ ] with your own actual path.
+
+## Dataset
+
+Due to the limitation of data, we divide 80% of the data into the training set and set the remaining 20% as the validation and test data sets.
+
+The detail number of the split dataset are given in next table.
+
+| the number of video | ASD | ASD_not |
+| ------------------- | --- | ------- |
+| train               | 923 | 815     |
+| val                 | 123 | 96      |
+
+
+## Network Structure
+
+So far, we have used the 3D Resnet structure, which are given in the next figure.
+![network](imgs/network.png)
+
+## Docker  
+
+We recommend using docker to build the training environment.
+
+1. pull the official docker image, where release in the [pytorchlightning/pytorch_lightning](https://hub.docker.com/r/pytorchlightning/pytorch_lightning)
+
+``` bash  
+docker pull pytorchlightning/pytorch_lightning
+```
+
+2. create container.
+
+``` bach  
+docker run -itd -v $(pwd)/path:/path --gpus all --name container_name --shm-size 32g --ipc="host" <images:latest> bash 
+
+```
+
+3. enter the container and run the code.
+
+``` bash 
+docker exec -it container_name bash
 ```
 
 ### Citation
-
-```
-@article{YourName,
-  title={Your Title},
-  author={Your team},
-  journal={Location},
-  year={Year}
-}
-```   
