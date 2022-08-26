@@ -1,3 +1,7 @@
+'''
+a pytorch lightning data module based dataloader, for train/val/test dataset prepare.
+
+'''
 
 # %%
 import matplotlib.pylab as plt
@@ -31,6 +35,7 @@ from pytorchvideo.data import make_clip_sampler
 from pytorchvideo.data.labeled_video_dataset import LabeledVideoDataset, labeled_video_dataset
 
 # %%
+
 def WalkDataset(
     data_path: str,
     clip_sampler: ClipSampler,
@@ -89,8 +94,10 @@ class WalkDataModule(LightningDataModule):
                     key="video",
                     transform=Compose(
                         [
+                            # uniform clip T frames from the given n sec video.
                             UniformTemporalSubsample(self.uniform_temporal_subsample_num),
-
+                            
+                            # dived the pixel from [0, 255] tp [0, 1], to save computing resources.
                             Div255(),
                             Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
 
@@ -98,7 +105,7 @@ class WalkDataModule(LightningDataModule):
                             # RandomCrop(self._IMG_SIZE),
 
                             # ShortSideScale(self._IMG_SIZE),
-                            
+
                             Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
                             RandomHorizontalFlip(p=0.5),
                         ]
@@ -187,7 +194,7 @@ class WalkDataModule(LightningDataModule):
         create the Walk train partition from the list of video labels
         in directory and subdirectory. Add transform that subsamples and 
         normalizes the video before applying the scale, crop and flip augmentations.
-        '''        
+        '''
         return DataLoader(
             self.test_pred_dataset,
             batch_size=self._BATCH_SIZE,
@@ -205,51 +212,3 @@ class WalkDataModule(LightningDataModule):
             batch_size=self._BATCH_SIZE,
             num_workers=self._NUM_WORKERS,
         )
-
-
-# %%
-# %cd ..
-# from parameters import get_parameters
-
-# # %% 
-# config, unkonwn = get_parameters()
-
-# config.img_size = 224
-# config.clip_duration = 2
-# config.batch_size = 4
-
-# dm = WalkDataModule(config)
-
-# dm.prepare_data()
-# dm.setup()
-
-# clip_pad_imgs = dm.train_dataloader()
-
-# data = {"video": [], "class": [], 'tensorsize': []}
-
-# batch = next(iter(clip_pad_imgs))
-
-# video = batch['video']
-# video_name = batch['video_name']
-# video_index = batch['video_index']
-# clip_index = batch['clip_index']
-# label = batch['label']
-
-# # %%
-
-# plt.figure(figsize=(256, 256))
-
-# b, c, t, h, w = video.size()
-
-# for num in range(b):  # batch size
-#     for i in range(t):  # 帧数
-#         plt.title(video_name[num])
-#         plt.subplot(b, t, (num * t) + i + 1)
-#         plt.imshow(video[num].permute(1, 2, 3, 0)[i])
-#         # plt.imsave(fname='/workspace/Walk_Video_PyTorch/project/dataloader/imgs/%i.png' % (int((num*t) + i+ 1)), arr=(video[num].permute(1, 2, 3, 0)[i].numpy()))
-
-#         plt.axis("off")
-
-# plt.show()
-
-# # %%

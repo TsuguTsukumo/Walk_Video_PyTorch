@@ -1,13 +1,10 @@
 # %%
-from cProfile import label
-from torchinfo import summary
 from pytorchvideo.models import x3d, resnet, csn, slowfast, r2plus1d
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule
-import os
 
 from utils.metrics import get_AUC, get_Accuracy, get_Average_precision, get_Dice, get_F1Score, get_Precision_Recall
 
@@ -72,6 +69,7 @@ class MakeVideoModule(nn.Module):
 # %%
 
 class WalkVideoClassificationLightningModule(LightningModule):
+    
     def __init__(self, hparams):
         super().__init__()
 
@@ -241,25 +239,3 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
     def _get_name(self):
         return self.model_type
-
-# %%
-# from parameters import get_parameters
-# from dataloader.data_loader import WalkDataModule
-
-# if __name__ == '__main__':
-
-#     param, unkonwn = get_parameters()
-
-#     os.environ["CUDA_VISIBLE_DEVICES"]="1"
-
-#     classification_module=WalkVideoClassificationLightningModule(param)
-
-#     data_module = WalkDataModule(param)
-
-#     classification_module.training_step(data_module, 0)
-
-#     summary=summary(classification_module, input_size=(6, 3, 8, 255, 255))
-#     print(summary)
-#     print(classification_module._get_name())
-
-# %%

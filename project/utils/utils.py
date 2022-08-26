@@ -6,8 +6,6 @@ import random
 import shutil
 
 # %%
-
-
 def del_folder(path, *args):
     '''
     delete the folder which path/version

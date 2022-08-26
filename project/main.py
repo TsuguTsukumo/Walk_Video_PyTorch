@@ -1,3 +1,8 @@
+'''
+this project were based the pytorch, pytorch lightning and pytorch video library, 
+for rapid development.
+'''
+
 # %%
 import os
 from pytorch_lightning import Trainer, seed_everything
@@ -14,8 +19,11 @@ from argparse import ArgumentParser
 import pytorch_lightning
 # %%
 
-def get_parameters():
 
+def get_parameters():
+    '''
+    The parameters for the model training, can be called out via the --h menu
+    '''
     parser = ArgumentParser()
 
     # model hyper-parameters
@@ -30,7 +38,8 @@ def get_parameters():
     parser.add_argument('--batch_size', type=int, default=1, help='batch size for the dataloader')
     parser.add_argument('--num_workers', type=int, default=2, help='dataloader for load video')
     parser.add_argument('--clip_duration', type=int, default=1, help='clip duration for the video')
-    parser.add_argument('--uniform_temporal_subsample_num', type=int, default=16, help='num frame from the clip duration')
+    parser.add_argument('--uniform_temporal_subsample_num', type=int,
+                        default=16, help='num frame from the clip duration')
     parser.add_argument('--gpu_num', type=int, default=0, choices=[0, 1], help='the gpu number whicht to train')
 
     # TTUR
@@ -40,18 +49,21 @@ def get_parameters():
 
     # Path
     parser.add_argument('--data_path', type=str, default="/workspace/data/dataset/", help='meta dataset path')
-    parser.add_argument('--split_data_path', type=str, default="/workspace/data/splt_dataset_512", help="split dataset path")
-    parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/splt_pad_dataset", help="split and pad dataset with detection method.")
+    parser.add_argument('--split_data_path', type=str,
+                        default="/workspace/data/splt_dataset_512", help="split dataset path")
+    parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/splt_pad_dataset",
+                        help="split and pad dataset with detection method.")
 
     parser.add_argument('--log_path', type=str, default='./logs', help='the lightning logs saved path')
 
-    # using pretrained 
-    parser.add_argument('--pretrained_model', type=bool, default=False, help='if use the pretrained model for training.')
-    # add the parser to ther Trainer 
+    # using pretrained
+    parser.add_argument('--pretrained_model', type=bool, default=False,
+                        help='if use the pretrained model for training.')
+
+    # add the parser to ther Trainer
     # parser = Trainer.add_argparse_args(parser)
 
     return parser.parse_known_args()
-
 
 # %%
 
@@ -79,7 +91,7 @@ def train(hparams):
     # define the checkpoint becavier.
     model_check_point = ModelCheckpoint(
         filename='{epoch}-{val_loss:.2f}-{val_acc:.4f}',
-        auto_insert_metric_name= True,
+        auto_insert_metric_name=True,
         monitor="val_acc",
         mode="max",
         save_last=True,
@@ -92,36 +104,36 @@ def train(hparams):
     monitor = TrainingDataMonitor(log_every_n_steps=50)
 
     trainer = Trainer(accelerator="auto",
-                      devices=1, 
+                      devices=1,
                       gpus=hparams.gpu_num,
                       max_epochs=hparams.max_epochs,
                       logger=tb_logger,
-                    #   log_every_n_steps=100,
+                      #   log_every_n_steps=100,
                       check_val_every_n_epoch=1,
                       callbacks=[progress_bar, rich_model_summary, table_metrics_callback, monitor, model_check_point],
-                    #   deterministic=True 
+                      #   deterministic=True
                       )
 
     # from the params
     # trainer = Trainer.from_argparse_args(hparams)
-    
+
     if hparams.pretrained_model:
         trainer.fit(classification_module, data_module, ckpt_path=get_ckpt_path)
-    else:    
+    else:
         # training and val
         trainer.fit(classification_module, data_module)
 
     # testing
     # trainer.test(dataloaders=data_module)
 
-    # predict 
+    # predict
     # trainer.predict(dataloaders=data_module)
 
 
 # %%
 if __name__ == '__main__':
 
-    # for test in jupyter 
+    # for test in jupyter
     config, unkonwn = get_parameters()
 
     train(config)

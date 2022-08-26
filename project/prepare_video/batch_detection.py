@@ -1,3 +1,7 @@
+'''
+use detectron2 library to detecated the person centered video
+
+'''
 # %% 
 import torch
 import numpy as np
@@ -24,7 +28,16 @@ class batch_detection():
         self.img_size = img_size
 
     def get_person_bboxes(self, inp_img:torch.tensor, predictor):
+        '''
+        based the detectron2 api to get the location.
 
+        Args:
+            inp_img (torch.tensor): frame of video
+            predictor (_type_): a predictor function
+
+        Returns:
+            list: bbox with predictions
+        '''
         predictions = predictor(inp_img.cpu().detach().numpy())['instances'].to('cpu')
         boxes = predictions.pred_boxes if predictions.has("pred_boxes") else None
         scores = predictions.scores if predictions.has("scores") else None
@@ -33,7 +46,15 @@ class batch_detection():
         return predicted_boxes, predictions
 
     def get_center_point(self, box:torch.tensor):
+        '''
+        from the bbox to get the center point, for the after calc.
 
+        Args:
+            box (torch.tensor): (x1, y1, x2, y2)
+
+        Returns:
+            tensor: (new_x, new_y) of center point, (x1, y1, x2, y2) of bbox.
+        '''
         x1, y1, x2, y2 = box
 
         new_x = (x2 - x1) / 2 + x1 
