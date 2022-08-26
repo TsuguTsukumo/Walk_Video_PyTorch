@@ -249,6 +249,27 @@ docker run -itd -v $(pwd)/path:/path --gpus all --name container_name --shm-size
 
 3. enter the container and run the code.
 
-``` bash 
+``` bash  
 docker exec -it container_name bash
 ```
+
+## About the lib  
+
+stop building wheels 😄
+
+### PyTorch Lightning  
+
+[PyTorch Lightning](https://pytorch-lightning.readthedocs.io/en/latest/) is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale. Lightning evolves with you as your projects go from idea to paper/production.
+
+### PyTorch Video  
+
+[link](https://pytorchvideo.org/)
+A deep learning library for video understanding research.
+
+### detectron2
+
+[Detectron2](https://detectron2.readthedocs.io/en/latest/index.html) is Facebook AI Research's next generation library that provides state-of-the-art detection and segmentation algorithms. It is the successor of Detectron and maskrcnn-benchmark. It supports a number of computer vision research projects and production applications in Facebook.
+
+### Torch Metrics
+
+[TorchMetrics](https://torchmetrics.readthedocs.io/en/latest/) is a collection of 80+ PyTorch metrics implementations and an easy-to-use API to create custom metrics. 
