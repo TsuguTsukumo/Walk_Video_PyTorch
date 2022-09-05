@@ -1,6 +1,6 @@
 
-<div align="center">    
- 
+<div align="center">
+
 # Walk Video Classification
 
 <!-- [![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)
@@ -13,13 +13,10 @@ ARXIV
 -->
 <!-- ![CI testing](https://github.com/PyTorchLightning/deep-learning-project-template/workflows/CI%20testing/badge.svg?branch=master&event=push) -->
 
-
 <!--  
 Conference   
--->   
+-->
 </div>
-
-
 
 ## Description  
 
@@ -58,6 +55,7 @@ Walk_Video_PyTorch
     `-- utils
         tools for the code.
 ```
+
 ## How to run
 
 1. install dependencies
@@ -194,7 +192,7 @@ The detail number of different disease and the number of every disease object ar
 | HipOA   | 64              | 3                | null           |
 | LCS     | 260             | 7                | 2              |
 
-## Data augmentation 
+## Data augmentation  
 
 Because the detection method is used to first extract the features of the characters into squares, there is no need to consider the border inconsistency when convolving.
 We use both spatial and temporal jittering for augmentation.
@@ -204,7 +202,7 @@ We train and evaluate models with clips of different frames (T = 16, 32, 64) by 
 
 At the [data_loader.py](project/dataloader/data_loader.py) we defined the transform function.
 
-``` python 
+``` python
 self.train_transform = Compose(
             [
                 ApplyTransformToKey(
@@ -272,4 +270,4 @@ A deep learning library for video understanding research.
 
 ### Torch Metrics
 
-[TorchMetrics](https://torchmetrics.readthedocs.io/en/latest/) is a collection of 80+ PyTorch metrics implementations and an easy-to-use API to create custom metrics. 
+[TorchMetrics](https://torchmetrics.readthedocs.io/en/latest/) is a collection of 80+ PyTorch metrics implementations and an easy-to-use API to create custom metrics.

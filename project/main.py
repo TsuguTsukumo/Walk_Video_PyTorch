@@ -28,9 +28,9 @@ def get_parameters():
 
     # model hyper-parameters
     parser.add_argument('--model', type=str, default='resnet', choices=['resnet', 'csn', 'x3d'])
-    parser.add_argument('--img_size', type=int, default=256)
+    parser.add_argument('--img_size', type=int, default=224)
     parser.add_argument('--version', type=str, default='test', help='the version of logger, such data')
-    parser.add_argument('--model_class_num', type=int, default=2, help='the class num of model')
+    parser.add_argument('--model_class_num', type=int, default=1, help='the class num of model')
     parser.add_argument('--model_depth', type=int, default=50, choices=[50, 101, 152], help='the depth of used model')
 
     # Training setting

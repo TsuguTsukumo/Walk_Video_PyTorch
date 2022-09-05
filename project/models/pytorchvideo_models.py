@@ -1,71 +1,14 @@
 # %%
-from pytorchvideo.models import x3d, resnet, csn, slowfast, r2plus1d
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from models.make_model import MakeVideoModule
+
 from pytorch_lightning import LightningModule
 
-from utils.metrics import get_AUC, get_Accuracy, get_Average_precision, get_Dice, get_F1Score, get_Precision_Recall
+from utils.metrics import *
 
-# %%
-class MakeVideoModule(nn.Module):
-    '''
-    the module zoo from the PytorchVideo lib.
-
-    Args:
-        nn (_type_): 
-    '''
-    def __init__(self, hparams) -> None:
-
-        super().__init__()
-
-        self.model_class_num=hparams.model_class_num
-        self.model_depth=hparams.model_depth
-
-    def make_walk_csn(self):
-        return csn.create_csn(
-            input_channel=3,
-            model_depth=self.model_depth,
-            model_num_class=self.model_class_num,
-            norm=nn.BatchNorm3d,
-            activation=nn.ReLU,
-        )
-
-    def make_walk_resnet(self):
-        return resnet.create_resnet(
-        input_channel=3,
-        model_depth=self.model_depth,
-        model_num_class=self.model_class_num,
-        norm=nn.BatchNorm3d,
-        # activation=nn.Sigmoid, # todo try sigmoid
-        activation = nn.ReLU,
-        )
-
-    def make_walk_x3d(self) -> nn.Module:
-        return x3d.create_x3d(
-            input_channel=3,
-            model_num_class=self.model_class_num,
-            norm=nn.BatchNorm3d,
-            activation=nn.ReLU,
-            input_clip_length=4,
-        )
-
-    #todo question with input tensor
-    def make_walk_slowfast(self) -> nn.Module:
-        return slowfast.create_slowfast(
-
-        )
-    
-    # todo question with input tensor
-    def make_walk_r2plus1d(self) -> nn.Module:
-        return r2plus1d.create_r2plus1d(
-            input_channel=3,
-            model_num_class=self.model_class_num,
-            model_depth=self.model_depth,
-            norm=nn.BatchNorm3d,
-            activation=nn.ReLU,
-        )
 # %%
 
 class WalkVideoClassificationLightningModule(LightningModule):
@@ -78,6 +21,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
         self.img_size = hparams.img_size
 
         self.lr=hparams.lr
+        self.num_class = hparams.model_class_num
 
         self.model = MakeVideoModule(hparams)
 
@@ -91,17 +35,20 @@ class WalkVideoClassificationLightningModule(LightningModule):
         elif self.model_type == 'x3d':
             self.model = self.model.make_walk_x3d()
 
-        # select the metrics
-        self.accuracy = get_Accuracy()
-        self.dice = get_Dice()
-        self.average_precision = get_Average_precision()
-        self.AUC = get_AUC()
-        self.f1_score = get_F1Score()
-        self.precision_recall = get_Precision_Recall()
-
         # save the hyperparameters to the file and ckpt
         self.save_hyperparameters()
 
+        # select the metrics
+        self._accuracy = get_Accuracy(self.num_class)
+        self._precision = get_Precision(self.num_class)
+        self._confusion_matrix = get_Confusion_Matrix()
+
+        # self.dice = get_Dice()
+        # self.average_precision = get_Average_precision(self.num_class)
+        # self.AUC = get_AUC()
+        # self.f1_score = get_F1Score()
+        # self.precision_recall = get_Precision_Recall()
+        
     def forward(self, x):
         return self.model(x)
 
@@ -118,31 +65,35 @@ class WalkVideoClassificationLightningModule(LightningModule):
         '''
 
         label = batch['label'].detach()
+
         # classification task
-        y_hat=self.model(batch["video"])
+        y_hat = self.model(batch["video"])
 
-        y_hat_softmax = torch.softmax(y_hat, dim=-1)
+        y_hat_sigmoid = torch.sigmoid(y_hat).squeeze(dim=-1)
 
-        loss=F.cross_entropy(y_hat, label)
 
-        accuracy = self.accuracy(y_hat_softmax, label)
+        # squeeze(dim=-1) to keep the torch.Size([1]), not null.
+        loss = F.binary_cross_entropy_with_logits(y_hat.squeeze(dim=-1), label.float())
+        soft_margin_loss = F.soft_margin_loss(y_hat_sigmoid, label.float())
+
+        accuracy = self._accuracy(y_hat_sigmoid, label)
 
         self.log('train_loss', loss)
         self.log('train_acc', accuracy)
 
         return loss
 
-    def training_epoch_end(self, outputs) -> None:
-        '''
-        after validattion_step end.
+    # def training_epoch_end(self, outputs) -> None:
+    #     '''
+    #     after validattion_step end.
 
-        Args:
-            outputs (list): a list of the train_step return value.
-        '''
+    #     Args:
+    #         outputs (list): a list of the train_step return value.
+    #     '''
         
-        # log epoch metric
-        # self.log('train_acc_epoch', self.accuracy)
-        pass
+    #     # log epoch metric
+    #     # self.log('train_acc_epoch', self.accuracy)
+    #     pass
 
     def validation_step(self, batch, batch_idx):
         '''
@@ -161,29 +112,32 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         preds = self.model(batch["video"])
 
-        preds_softmax = torch.softmax(preds, dim=-1)
+        preds_sigmoid = torch.sigmoid(preds).squeeze(dim=-1)
 
-        val_loss=F.cross_entropy(preds, label)
+        # val_loss=F.cross_entropy(preds, label)
+        val_loss = F.binary_cross_entropy_with_logits(preds.squeeze(dim=-1), label.float())
 
         # calc the metric, function from torchmetrics
-        accuracy = self.accuracy(preds_softmax, label)
+        accuracy = self._accuracy(preds_sigmoid, label)
 
-        average_precision = self.average_precision(preds_softmax, label)
+        precision = self._precision(preds_sigmoid, label)
+
+        confusion_matrix = self._confusion_matrix(preds_sigmoid, label)
 
         # log the val loss and val acc, in step and in epoch.
-        self.log_dict({'val_loss': val_loss, 'val_acc': accuracy, 'val_average_precision': average_precision}, on_step=False, on_epoch=True)
+        self.log_dict({'val_loss': val_loss, 'val_acc': accuracy, 'val_average_precision': precision}, on_step=False, on_epoch=True)
         
         return accuracy
 
-    def validation_epoch_end(self, outputs):
+    # def validation_epoch_end(self, outputs):
         
-        val_metric = torch.stack(outputs, dim=0)
+    #     val_metric = torch.stack(outputs, dim=0)
 
-        final_acc = torch.sum(val_metric) / len(val_metric)
+    #     final_acc = torch.sum(val_metric) / len(val_metric)
 
-        print(final_acc)
+    #     print(final_acc)
 
-        return final_acc
+    #     return final_acc
 
     def test_step(self, batch, batch_idx):
         '''
@@ -199,21 +153,23 @@ class WalkVideoClassificationLightningModule(LightningModule):
         preds = self.model(batch["video"])
 
         preds_softmax = torch.softmax(preds, dim=-1)
+        preds_sigmoid = torch.sigmoid(preds).squeeze()
 
-        test_loss = F.cross_entropy(preds, labels)
+        # test_loss = F.cross_entropy(preds, labels)
+        test_loss = F.binary_cross_entropy_with_logits(preds.squeeze(), labels.float())
 
         # calculate acc 
-        accuracy = self.accuracy(preds_softmax, labels)
+        accuracy = self._accuracy(preds_sigmoid, labels)
 
-        average_precision = self.average_precision(preds_softmax, labels)
+        average_precision = self._precision(preds_sigmoid, labels)
         # AUC = self.AUC(F.softmax(test_pred, dim=-1), batch["label"])
-        f1_score = self.f1_score(preds_softmax, labels)
+        # f1_score = self.f1_score(preds_softmax, labels)
         # precision, recall, threshold = self.precision_recall(F.softmax(test_pred, dim=-1), batch["label"])
 
         # self.dice(test_pred, target)
 
         # log the test loss, and test acc, in step and in epoch
-        self.log_dict({'test_loss': test_loss, 'test_acc': self.accuracy, 'test_average_precision': self.average_precision, 'test_f1_score': self.f1_score}, on_step=False, on_epoch=True)
+        self.log_dict({'test_loss': test_loss, 'test_acc': accuracy, 'test_average_precision': average_precision}, on_step=False, on_epoch=True)
 
         return accuracy
         

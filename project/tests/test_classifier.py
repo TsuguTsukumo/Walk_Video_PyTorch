@@ -46,7 +46,7 @@ model = WalkVideoClassificationLightningModule(opt)
 
 # get last ckpt path
 # ckpt_path = get_ckpt_path(opt)
-ckpt_path = '/workspace/logs/resnet/test_resnet_depth50/checkpoints/epoch=14-val_loss=4.25-val_acc=0.3105.ckpt'
+ckpt_path = '/workspace/logs/resnet/test_resnet_depth50/checkpoints/epoch=44-val_loss=4.42-val_acc=0.4292.ckpt'
 
 # model = WalkVideoClassificationLightningModule.load_from_checkpoint(ckpt_path)
 model = model.load_from_checkpoint(ckpt_path)
