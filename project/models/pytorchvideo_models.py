@@ -108,13 +108,19 @@ class WalkVideoClassificationLightningModule(LightningModule):
             accuract: selected accuracy result.
         '''
 
-        label = batch['label'].detach()
+        # input and model define 
+        label = batch['label'].detach() # b, class_num
+        video = batch['video'].detach() # b, c, t, h, w
 
-        preds = self.model(batch["video"])
+        self.model.eval()
+
+        # pred the video frames
+        with torch.no_grad():
+            preds = self.model(video)
 
         preds_sigmoid = torch.sigmoid(preds).squeeze(dim=-1)
 
-        # val_loss=F.cross_entropy(preds, label)
+        # squeeze(dim=-1) to keep the torch.Size([1]), not null.
         val_loss = F.binary_cross_entropy_with_logits(preds.squeeze(dim=-1), label.float())
 
         # calc the metric, function from torchmetrics
@@ -125,7 +131,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
         confusion_matrix = self._confusion_matrix(preds_sigmoid, label)
 
         # log the val loss and val acc, in step and in epoch.
-        self.log_dict({'val_loss': val_loss, 'val_acc': accuracy, 'val_average_precision': precision}, on_step=False, on_epoch=True)
+        self.log_dict({'val_loss': val_loss, 'val_acc': accuracy, 'val_precision': precision}, on_step=False, on_epoch=True)
         
         return accuracy
 
@@ -148,28 +154,31 @@ class WalkVideoClassificationLightningModule(LightningModule):
             batch_idx (_type_): _description_
         '''
 
-        labels = batch['label'].detach()
+        # input and model define 
+        label = batch['label'].detach() # b, class_num
+        video = batch['video'].detach() # b, c, t, h, w
 
-        preds = self.model(batch["video"])
+        self.model.eval()
 
-        preds_softmax = torch.softmax(preds, dim=-1)
-        preds_sigmoid = torch.sigmoid(preds).squeeze()
+        # pred the video frames
+        with torch.no_grad():
+            preds = self.model(video)
 
-        # test_loss = F.cross_entropy(preds, labels)
-        test_loss = F.binary_cross_entropy_with_logits(preds.squeeze(), labels.float())
+        preds_sigmoid = torch.sigmoid(preds).squeeze(dim=-1)
 
-        # calculate acc 
-        accuracy = self._accuracy(preds_sigmoid, labels)
+        # squeeze(dim=-1) to keep the torch.Size([1]), not null.
+        test_loss = F.binary_cross_entropy_with_logits(preds.squeeze(dim=-1), label.float())
 
-        average_precision = self._precision(preds_sigmoid, labels)
-        # AUC = self.AUC(F.softmax(test_pred, dim=-1), batch["label"])
-        # f1_score = self.f1_score(preds_softmax, labels)
-        # precision, recall, threshold = self.precision_recall(F.softmax(test_pred, dim=-1), batch["label"])
+        # calc the metric, function from torchmetrics
+        accuracy = self._accuracy(preds_sigmoid, label)
 
-        # self.dice(test_pred, target)
+        precision = self._precision(preds_sigmoid, label)
+
+        confusion_matrix = self._confusion_matrix(preds_sigmoid, label)
+
 
         # log the test loss, and test acc, in step and in epoch
-        self.log_dict({'test_loss': test_loss, 'test_acc': accuracy, 'test_average_precision': average_precision}, on_step=False, on_epoch=True)
+        self.log_dict({'test_loss': test_loss, 'test_acc': accuracy, 'test_precision': precision}, on_step=False, on_epoch=True)
 
         return accuracy
         

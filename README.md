@@ -228,6 +228,50 @@ self.train_transform = Compose(
 So far, we have used the 3D Resnet structure, which are given in the next figure.
 ![network](imgs/network.png)
 
+## Experimental point
+
+1. different frame in 3DCNN.
+2. pre-train/scratch different in experimental.
+3. pre-process (object detection extract) make sense in the experimental. (prepare)
+
+## Experimental results
+
+- from scratch
+show the Top@1 acc and Top@1 precision respectively.
+  
+| from scratch | 1s 16frame | 2s 32 frame | 3s 64 frame |
+| ------------ | ---------- | ----------- | ----------- |
+| accuracy     | 0.36       | 0.61        | 0.68        |
+| precision    | 0.69       | 0.75        | 0.70        |
+
+- pre-train on Kinetics-400, which 8 frame length and 8 sample rate.
+
+    sample rate = (num_frames * sample rate) / frame per second
+
+| pretrain  | 1s 16frame | 2s 32 frame | 3s 64 frame |
+| --------- | ---------- | ----------- | ----------- |
+| accuracy  | 0.65       | 0.62        | **0.81**    |
+| precision | 0.88       | 0.71        | nan         |
+
+| ablation study | 1s 8 frame | 2s 8 frame | 3s 8 frame |
+| -------------- | ---------- | ---------- | ---------- |
+| accuracy       | 0.68       | 0.69       | 0.68       |
+| precision      | 0.63       | 0.62       | 0.53       |
+
+| ablation study | 1s 16 frame | 2s 16 frame | 3s 16 frame |
+| -------------- | ----------- | ----------- | ----------- |
+| accuracy       | x           | 0.71        | 0.67        |
+| precision      | x           | 0.57        | 0.59        |
+
+| ablation study | 1s 32 frame | 2s 32 frame | 3s 32 frame |
+| -------------- | ----------- | ----------- | ----------- |
+| accuracy       | **0.82**    | x           | 0.65        |
+| precision      | 0.80        | x           | 0.60        |
+
+x means the number in the first table.  
+
+⚠️ **The accuracy have an exact calculation, but the precision has some problem when calculation, and is not accurate. So we hope the accuracy score will be used for reference.**
+
 ## Docker  
 
 We recommend using docker to build the training environment.
