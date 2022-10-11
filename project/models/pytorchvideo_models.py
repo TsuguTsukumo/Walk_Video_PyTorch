@@ -24,6 +24,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
         self.num_class = hparams.model_class_num
 
         self.model = MakeVideoModule(hparams)
+        self.transfor_learning = hparams.transfor_learning
 
         # select the network structure 
         if self.model_type == 'resnet':
@@ -31,9 +32,6 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         elif self.model_type == 'csn':
             self.model=self.model.make_walk_csn()
-
-        elif self.model_type == 'x3d':
-            self.model = self.model.make_walk_x3d()
 
         # save the hyperparameters to the file and ckpt
         self.save_hyperparameters()
@@ -176,7 +174,6 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         confusion_matrix = self._confusion_matrix(preds_sigmoid, label)
 
-
         # log the test loss, and test acc, in step and in epoch
         self.log_dict({'test_loss': test_loss, 'test_acc': accuracy, 'test_precision': precision}, on_step=False, on_epoch=True)
 
@@ -199,7 +196,19 @@ class WalkVideoClassificationLightningModule(LightningModule):
             lr_scheduler: the selected lr scheduler.
         '''
 
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        # if self.transfor_learning:
+            
+        #     params_to_update = []
+
+        print("Params to learn:")
+
+        # observe that all parameters are being optimized      
+        for name, param in self.model.named_parameters():
+            if param.requires_grad == True:
+                print("\t", name)
+            
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        return optimizer
         # return torch.optim.SGD(self.parameters(), lr=self.lr)
 
     def _get_name(self):

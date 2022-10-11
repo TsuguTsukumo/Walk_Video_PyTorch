@@ -82,6 +82,8 @@ class WalkDataModule(LightningDataModule):
         self._SPLIT_DATA_PATH = opt.split_data_path
         self._CLIP_DURATION = opt.clip_duration
 
+        self._PRE_PROCESS_FLAG = opt.pre_process_flag
+
         self._BATCH_SIZE = opt.batch_size
         self._NUM_WORKERS = opt.num_workers
         self._IMG_SIZE = opt.img_size
@@ -114,21 +116,27 @@ class WalkDataModule(LightningDataModule):
             ]
         )
 
-        # self.train_transform = create_video_transform(
-        #     mode='train',
-        #     video_key='video',
-        #     num_samples=self.uniform_temporal_subsample_num,
-        #     crop_size=self._IMG_SIZE,
-        #     convert_to_float=False,
-        #     aug_type='augmix'
-        # )
+        self.raw_train_transform = Compose(
+            [
+                ApplyTransformToKey(
+                    key="video",
+                    transform=Compose(
+                        [
+                            # uniform clip T frames from the given n sec video.
+                            UniformTemporalSubsample(self.uniform_temporal_subsample_num),
+                            
+                            # dived the pixel from [0, 255] to [0, 1], to save computing resources.
+                            Div255(),
+                            Normalize((0.45, 0.45, 0.45), (0.225, 0.225, 0.225)),
 
-        self.val_transform = create_video_transform(
-            mode='val',
-            video_key='video',
-            num_samples=self.uniform_temporal_subsample_num,
-            crop_size=self._IMG_SIZE,
-            convert_to_float=False,
+                            RandomShortSideScale(min_size=256, max_size=320),
+
+                            Resize(size=[self._IMG_SIZE, self._IMG_SIZE]),
+                            RandomHorizontalFlip(p=0.5),
+                        ]
+                    )
+                )
+            ]
         )
 
     def prepare_data(self) -> None:
@@ -141,27 +149,35 @@ class WalkDataModule(LightningDataModule):
         Args:
             stage (Optional[str], optional): trainer.stage, in ('fit', 'validate', 'test', 'predict'). Defaults to None.
         '''
+        if self._PRE_PROCESS_FLAG:
+            data_path = self._SPLIT_DATA_PATH
+            transform = self.train_transform
+            print("run pre process model!")
+        else:
+            data_path = self._DATA_PATH
+            transform = self.raw_train_transform
+            print("run not pre process model!")
 
         # if stage == "fit" or stage == None:
         if stage in ("fit", None):
             self.train_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_DATA_PATH, "train"),
+                data_path=os.path.join(data_path, "train"),
                 clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
-                transform=self.train_transform,
+                transform=transform,
             )
 
         if stage in ("fit", "validate", None):
             self.val_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
+                data_path=os.path.join(data_path, "val"),
                 clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
-                transform=self.train_transform,
+                transform=transform,
             )
 
         if stage in ("predict", "test", None):
             self.test_pred_dataset = WalkDataset(
-                data_path=os.path.join(self._SPLIT_DATA_PATH, "val"),
+                data_path=os.path.join(data_path, "val"),
                 clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
-                transform=self.train_transform
+                transform=transform
             )
 
     def train_dataloader(self) -> DataLoader:

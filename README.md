@@ -234,6 +234,18 @@ So far, we have used the 3D Resnet structure, which are given in the next figure
 2. pre-train/scratch different in experimental.
 3. pre-process (object detection extract) make sense in the experimental. (prepare)
 
+## Transfer learning experiments
+
+A natural question that arises is whether these features also generalize to other datasets and class categories.
+We examine this question in detail by performing transfer learning experiments on the Kinetis-400. 
+
+⚠️ This time we use the 1s 32 frame and 224x224 video frame shape as the input data.
+
+- fine-tune top layer (head)
+- fine-tune last layer (stem) and top layer (head) 
+- fine-tune all layers
+- train from scratch
+
 ## Experimental results
 
 - from scratch
