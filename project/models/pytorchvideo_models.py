@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.make_model import MakeVideoModule
+from models.make_model import MakeVideoModule, early_fusion, late_fusion, single_frame
 
 from pytorch_lightning import LightningModule
 
@@ -22,16 +22,30 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         self.lr=hparams.lr
         self.num_class = hparams.model_class_num
+        self.uniform_temporal_subsample_num = hparams.uniform_temporal_subsample_num
 
-        self.model = MakeVideoModule(hparams)
+        self.fusion_method = hparams.fusion_method
+
+        if self.fusion_method == 'slow_fusion':
+            self.model = MakeVideoModule(hparams)
+
+            # select the network structure 
+            if self.model_type == 'resnet':
+                self.model=self.model.make_walk_resnet()
+
+            elif self.model_type == 'csn':
+                self.model=self.model.make_walk_csn()
+
+        elif self.fusion_method == 'single_frame':
+            self.model = single_frame(hparams)
+        elif self.fusion_method == 'early_fusion':
+            self.model = early_fusion(hparams)
+        elif self.fusion_method == 'late_fusion':
+            self.model = late_fusion(hparams)
+        else:
+            raise ValueError('no choiced model selected, get {self.fusion_method}')
+
         self.transfor_learning = hparams.transfor_learning
-
-        # select the network structure 
-        if self.model_type == 'resnet':
-            self.model=self.model.make_walk_resnet()
-
-        elif self.model_type == 'csn':
-            self.model=self.model.make_walk_csn()
 
         # save the hyperparameters to the file and ckpt
         self.save_hyperparameters()
@@ -61,18 +75,34 @@ class WalkVideoClassificationLightningModule(LightningModule):
         Returns:
             loss: the calc loss
         '''
+        
+        # input and label
+        video = batch['video'].detach()
 
-        label = batch['label'].detach()
+        if self.fusion_method == 'single_frame': 
+            # for single frame
+            label = batch['label'].detach()
+
+            # when batch > 1, for multi label, to repeat label in (bxt)
+            label = label.repeat_interleave(self.uniform_temporal_subsample_num).squeeze()
+
+        else:
+            label = batch['label'].detach() # b, class_num
 
         # classification task
-        y_hat = self.model(batch["video"])
+        y_hat = self.model(video)
 
-        y_hat_sigmoid = torch.sigmoid(y_hat).squeeze(dim=-1)
+        # when torch.size([1]), not squeeze.
+        if y_hat.size()[0] != 1 or len(y_hat.size()) != 1 :
+            y_hat = y_hat.squeeze(dim=-1)
+            
+            y_hat_sigmoid = torch.sigmoid(y_hat)
+        
+        else:
+            y_hat_sigmoid = torch.sigmoid(y_hat)
 
-
-        # squeeze(dim=-1) to keep the torch.Size([1]), not null.
-        loss = F.binary_cross_entropy_with_logits(y_hat.squeeze(dim=-1), label.float())
-        soft_margin_loss = F.soft_margin_loss(y_hat_sigmoid, label.float())
+        loss = F.binary_cross_entropy_with_logits(y_hat, label.float())
+        # soft_margin_loss = F.soft_margin_loss(y_hat_sigmoid, label.float())
 
         accuracy = self._accuracy(y_hat_sigmoid, label)
 
@@ -106,9 +136,17 @@ class WalkVideoClassificationLightningModule(LightningModule):
             accuract: selected accuracy result.
         '''
 
-        # input and model define 
-        label = batch['label'].detach() # b, class_num
+        # input and label
         video = batch['video'].detach() # b, c, t, h, w
+
+        if self.fusion_method == 'single_frame': 
+            label = batch['label'].detach()
+
+            # when batch > 1, for multi label, to repeat label in (bxt)
+            label = label.repeat_interleave(self.uniform_temporal_subsample_num).squeeze()
+
+        else:
+            label = batch['label'].detach() # b, class_num
 
         self.model.eval()
 
@@ -116,10 +154,15 @@ class WalkVideoClassificationLightningModule(LightningModule):
         with torch.no_grad():
             preds = self.model(video)
 
-        preds_sigmoid = torch.sigmoid(preds).squeeze(dim=-1)
+        # when torch.size([1]), not squeeze.
+        if preds.size()[0] != 1 or len(preds.size()) != 1 :
+            preds = preds.squeeze(dim=-1)
+            preds_sigmoid = torch.sigmoid(preds)
+        else:
+            preds_sigmoid = torch.sigmoid(preds)
 
         # squeeze(dim=-1) to keep the torch.Size([1]), not null.
-        val_loss = F.binary_cross_entropy_with_logits(preds.squeeze(dim=-1), label.float())
+        val_loss = F.binary_cross_entropy_with_logits(preds, label.float())
 
         # calc the metric, function from torchmetrics
         accuracy = self._accuracy(preds_sigmoid, label)

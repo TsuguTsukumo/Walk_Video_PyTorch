@@ -43,6 +43,8 @@ def get_parameters():
     parser.add_argument('--gpu_num', type=int, default=0, choices=[0, 1], help='the gpu number whicht to train')
 
     # ablation experment
+    # different fusion method 
+    parser.add_argument('--fusion_method', type=str, default='slow_fusion', choices=['single_frame', 'early_fusion', 'late_fusion', 'slow_fusion'], help="select the different fusion method from ['single_frame', 'early_fusion', 'late_fusion']")
     # pre process flag
     parser.add_argument('--pre_process_flag', action='store_true', help='if use the pre process video, which detection.')
     # Transfor_learning

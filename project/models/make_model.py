@@ -1,8 +1,10 @@
 # %%
 from pytorchvideo.models import resnet, csn
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import copy
 
 
 # %%
@@ -85,19 +87,109 @@ class MakeVideoModule(nn.Module):
 
         return slow
 
-# # %%
+# %%
+class single_frame(nn.Module):
+
+    def __init__(self, hparams) -> None:
+
+        super().__init__()
+
+        self.model_class_num = hparams.model_class_num
+
+        self.transfor_learning = hparams.transfor_learning
+
+        self.resnet_model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=self.transfor_learning)
+
+        self.resnet_model.fc = torch.nn.Linear(2048, self.model_class_num, bias=True)
+
+    def forward(self, img: torch.Tensor) -> torch.Tensor:
+
+        b, c, t, h, w = img.size()
+        # make frame to batch image, wich (b*t, c, h, w)
+        batch_imgs = img.permute(0, 2, 1, 3, 4).reshape(-1, c, h, w)
+
+        output = self.resnet_model(batch_imgs)
+
+        return output
+
+class early_fusion(nn.Module):
+
+    def __init__(self, hparams) -> None:
+        super().__init__()
+
+        self.model_class_num = hparams.model_class_num
+
+        self.transfor_learning = hparams.transfor_learning
+        self.uniform_temporal_subsample_num = hparams.uniform_temporal_subsample_num
+
+        # change the resnet work structure
+        self.resnet_model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=self.transfor_learning)
+
+        self.resnet_model.conv1 = torch.nn.Conv2d(3 * self.uniform_temporal_subsample_num, out_channels=64, kernel_size=(7,7), stride=(2, 2), padding=(3, 3), bias=False)
+        self.resnet_model.fc = torch.nn.Linear(2048, self.model_class_num, bias=True)
+
+    def forward(self, img: torch.Tensor) -> torch.Tensor:
+
+        b, c, t, h, w = img.size()
+
+        batch_imgs = img.permute(0, 2, 1, 3, 4).reshape(b, -1, h, w)
+
+        output = self.resnet_model(batch_imgs)
+
+        return output
+
+class late_fusion(nn.Module):
+
+    def __init__(self, hparams) -> None:
+        super().__init__()
+
+        self.model_class_num = hparams.model_class_num
+
+        self.transfor_learning = hparams.transfor_learning
+
+        self.resnet_model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=self.transfor_learning)
+
+        # late fusion model
+        self.first_model = torch.nn.Sequential(*list(self.resnet_model.children())[:-2])
+        self.last_model = copy.deepcopy(self.first_model)
+
+        self.last_pool = torch.nn.AdaptiveAvgPool2d(output_size=(1, 1))
+        self.last_layer = torch.nn.Linear(4096, self.model_class_num, bias=True)
+
+    def forward(self, img: torch.Tensor) -> torch.Tensor:
+
+        b, c, t, h, w = img.size()
+        batch_imgs = img.permute(0, 2, 1, 3, 4) # b, t, c, h, w
+
+        first_single_frame =  batch_imgs[:, 10, :] # b, c, h, w
+        last_single_frame = batch_imgs[:, -10, :] # b, c, h, w
+
+        first_feat = self.first_model(first_single_frame)
+        last_feat = self.last_model(last_single_frame)
+
+        cat_feat = torch.cat((first_feat, last_feat), dim = 1) # b, c
+
+        output = self.last_layer(self.last_pool(cat_feat).squeeze())
+
+        return output
+
+
+# %%
 # class opt: 
-#     model_class_num = 2
+
+#     model_class_num = 1
 #     model_depth = 50
 #     transfor_learning = True
 #     fix_layer = 'stage_head'
 
-
 # make_video_module = MakeVideoModule(opt)
 
 # model = make_video_module.make_walk_resnet()
-
 # # %%
-# for param in model.parameters():
-#     print(param.requires_grad)
+
+# single_frame_model = single_frame(opt)
+
+# batch_video = torch.randn(size=[4, 3, 16, 224, 224])
+
+# output = single_frame_model(batch_video)
 # # %%
