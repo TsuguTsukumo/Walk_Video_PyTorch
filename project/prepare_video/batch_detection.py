@@ -15,7 +15,7 @@ from torchvision.transforms.functional import crop, pad, resize
 
 # %%
 
-class batch_detection():
+class Batch_Detection():
     def __init__(self, img_size: int) -> None:
 
         # set for detection
@@ -150,7 +150,7 @@ class batch_detection():
 
         return frame_list, box_list, pred_list, CENTER_POINT
 
-    def clip_pad_with_bbox(self, imgs: list, boxes: list, img_size: int = 256, bias:int = 3):
+    def clip_pad_with_bbox(self, imgs: list, boxes: list, img_size: int = 256, bias:int = 10):
         '''
         based torchvision function to crop, pad, resize img.
 
@@ -213,15 +213,15 @@ class batch_detection():
 
         return torch.stack(frame_list, dim=1)
 
-    def handel_batch_imgs(self, video_frame, flag: str = 'clip'):
+    def handel_batch_imgs(self, video_frame, flag: str = 'pad'):
 
         t, h, w, c = video_frame.size()
 
         frame_list, box_list, pred_list, CENTER_POINT = self.get_frame_box(video_frame) # h, w, c
 
-        if flag == 'clip':
-            one_batch = self.clip_with_bbox(frame_list, box_list, self.img_size)
-        else:
+        if flag == 'pad':
             one_batch = self.clip_pad_with_bbox(frame_list, box_list, self.img_size) # c, t, h, w
+        else:
+            one_batch = self.clip_with_bbox(frame_list, box_list, self.img_size)
 
         return one_batch

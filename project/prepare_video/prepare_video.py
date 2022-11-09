@@ -4,15 +4,16 @@ main entrance of prepare video.
 
 # %%
 import os
+import sys
+
+# there should exchange the path with yourself path.
+sys.path.append('/workspace/Walk_Video_PyTorch/project')
+
 from utils.utils import make_folder, count_File_Number
 from argparse import ArgumentParser
 from torchvision.io import read_video, read_video_timestamps, write_video
 import torch
-from batch_detection import batch_detection
-import sys
-
-sys.path.append('/workspace/Walk_Video_PyTorch/project')
-
+from batch_detection import Batch_Detection
 # %%
 
 def make_split_pad_folder(split_pad_data_path: str):
@@ -115,10 +116,10 @@ def get_final_video_path_Dict(prefix_path_list: list):
 # %%
 
 
-def read_and_write_video_from_List(path_list: list, img_size: int = 256, video_save_path: str = '', flag: str = 'clip'):
+def read_and_write_video_from_List(path_list: list, img_size: int = 256, video_save_path: str = '', flag: str = 'pad'):
 
     # instance batch detection class.
-    get_bbox = batch_detection(img_size=img_size)
+    get_bbox = Batch_Detection(img_size=img_size)
 
     for path in path_list:
 
@@ -132,10 +133,7 @@ def read_and_write_video_from_List(path_list: list, img_size: int = 256, video_s
 
         video_frame, audio_frame, video_info = read_video(path)  # (t, h, w, c)
 
-        if flag == 'clip':
-            clip_pad_imgs = get_bbox.handel_batch_imgs(video_frame, flag=flag)
-        else:
-            clip_pad_imgs = get_bbox.handel_batch_imgs(video_frame, flag=flag)  # c, t, h, w
+        clip_pad_imgs = get_bbox.handel_batch_imgs(video_frame, flag=flag)  # c, t, h, w
 
         write_video(filename=save_video_path, video_array=clip_pad_imgs.permute(
             1, 2, 3, 0), fps=30, video_codec='h264')  # (c, t, h, w) to (t, h, w, c)
@@ -161,10 +159,11 @@ def get_parameters():
 
     # Path
     parser.add_argument('--data_path', type=str, default="/workspace/data/dataset/", help='meta dataset path')
-    parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/splt_pad_dataset",
+    parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/split_pad_dataset",
                         help="split and pad dataset with detection method.")
-    parser.add_argument('--split_data_path', type=str, default="/workspace/data/splt_dataset",
+    parser.add_argument('--split_data_path', type=str, default="/workspace/data/split_dataset",
                         help="split dataset with detection method.")
+    parser.add_argument('--pad_flag', type=str, default="pad", help="flag that pad or not")
 
     return parser.parse_known_args()
 
@@ -177,13 +176,15 @@ if __name__ == '__main__':
 
     DATA_PATH = parames.data_path
     IMG_SIZE = parames.img_size
-
-    SPLIT_PAD_DATA_PATH = parames.split_pad_data_path + "_" + str(IMG_SIZE)
-    SPLIT_DATA_PATH = parames.split_data_path + "_" + str(IMG_SIZE)
+    PAD_FLAG = parames.pad_flag
 
     # make folder with img size
-    make_split_pad_folder(SPLIT_DATA_PATH)
-    make_split_pad_folder(SPLIT_PAD_DATA_PATH)
+    if PAD_FLAG == 'pad':
+        SPLIT_PAD_DATA_PATH = parames.split_pad_data_path + "_" + str(IMG_SIZE)
+        make_split_pad_folder(SPLIT_PAD_DATA_PATH)
+    else:
+        SPLIT_DATA_PATH = parames.split_data_path + "_" + str(IMG_SIZE)
+        make_split_pad_folder(SPLIT_DATA_PATH)
 
     prefix_path_list = get_Diease_Path_List(DATA_PATH)  # four folder, train/ASD, train/ASD_not, val/ASD, val/ASD_not
 
@@ -194,9 +195,12 @@ if __name__ == '__main__':
         now_video_path_list = final_video_path_Dict[key]
         now_video_path_list.sort()
 
-        video_frame, now_video_path_list, video_info = read_and_write_video_from_List(
-            now_video_path_list, img_size=IMG_SIZE, video_save_path=SPLIT_DATA_PATH, flag='clip')
-        # video_frame, now_video_path_list, video_info = read_and_write_video_from_List(now_video_path_list, img_size=IMG_SIZE, video_save_path=SPLIT_PAD_DATA_PATH, flag='pad')
+        if PAD_FLAG == 'pad':
+            video_frame, now_video_path_list, video_info = read_and_write_video_from_List(
+                now_video_path_list, img_size=IMG_SIZE, video_save_path=SPLIT_PAD_DATA_PATH, flag=PAD_FLAG)
+        else:
+            video_frame, now_video_path_list, video_info = read_and_write_video_from_List(
+                now_video_path_list, img_size=IMG_SIZE, video_save_path=SPLIT_DATA_PATH, flag=PAD_FLAG)
 
     print('Finish split and pad video!')
 
