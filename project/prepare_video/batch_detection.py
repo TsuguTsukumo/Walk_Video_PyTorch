@@ -21,7 +21,7 @@ class Batch_Detection():
         # set for detection
         cfg = get_cfg()
         cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
-        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.95  # set threshold for this model
+        cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.90  # set threshold for this model
         cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")
         self.predictor = DefaultPredictor(cfg)
 
@@ -42,7 +42,7 @@ class Batch_Detection():
         boxes = predictions.pred_boxes if predictions.has("pred_boxes") else None
         scores = predictions.scores if predictions.has("scores") else None
         classes = np.array(predictions.pred_classes.tolist() if predictions.has("pred_classes") else None)
-        predicted_boxes = boxes[np.logical_and(classes==0, scores>0.95 )].tensor.cpu() # only person
+        predicted_boxes = boxes[np.logical_and(classes==0, scores>0.80 )].tensor.cpu() # only person
         return predicted_boxes, predictions
 
     def get_center_point(self, box:torch.tensor):
@@ -88,7 +88,7 @@ class Batch_Detection():
             predicted_boxes, pred = self.get_person_bboxes(inp_img, self.predictor)
 
             # determin which is the person and which is the doctor
-            if predicted_boxes.shape == (2, 4): # just want one people bbox
+            if predicted_boxes.shape == (2, 4): # two boxes, patient and doctor
             
                 center_point_1, coord_list_1 = self.get_center_point(predicted_boxes[0])
                 center_point_2, coord_list_2 = self.get_center_point(predicted_boxes[1])
@@ -124,7 +124,7 @@ class Batch_Detection():
                 box_list.append(predicted_boxes.unsqueeze(dim=0))
                 pred_list.append(pred)
 
-            elif predicted_boxes.shape == (1, 4): # one box, maybe person
+            elif predicted_boxes.shape == (1, 4): # one box, only one person
                 
                 center_point, _ = self.get_center_point(predicted_boxes[0])
 
@@ -147,7 +147,7 @@ class Batch_Detection():
                     pred_list.append(pred)
 
                     CENTER_POINT = center_point
-
+            
         return frame_list, box_list, pred_list, CENTER_POINT
 
     def clip_pad_with_bbox(self, imgs: list, boxes: list, img_size: int = 256, bias:int = 10):
@@ -188,7 +188,7 @@ class Batch_Detection():
 
             frame_list.append(resized_img)
 
-        return torch.stack(frame_list, dim=1)
+        return torch.stack(frame_list, dim=1) # c, t, h, w
 
     def clip_with_bbox(self, imgs: list, boxes: list, img_size: int = 256):
         

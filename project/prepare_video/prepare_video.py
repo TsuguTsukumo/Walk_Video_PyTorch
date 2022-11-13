@@ -9,6 +9,9 @@ import sys
 # there should exchange the path with yourself path.
 sys.path.append('/workspace/Walk_Video_PyTorch/project')
 
+import warnings
+warnings.filterwarnings("ignore")
+
 from utils.utils import make_folder, count_File_Number
 from argparse import ArgumentParser
 from torchvision.io import read_video, read_video_timestamps, write_video
@@ -132,6 +135,7 @@ def read_and_write_video_from_List(path_list: list, img_size: int = 256, video_s
         # if path_split_file_name != video_save_path_file_name:
 
         video_frame, audio_frame, video_info = read_video(path)  # (t, h, w, c)
+        print("currect file:", path)
 
         clip_pad_imgs = get_bbox.handel_batch_imgs(video_frame, flag=flag)  # c, t, h, w
 
@@ -141,6 +145,7 @@ def read_and_write_video_from_List(path_list: list, img_size: int = 256, video_s
         print(video_info['video_fps'], path, video_frame.shape)
         print('clip %i frames!, %i frams lost!' %
               (clip_pad_imgs.size()[1], video_frame.size()[0] - clip_pad_imgs.size()[1]))
+        print('----------------------------------------------------------------------')
 
     return video_frame, path, video_info['video_fps']
 
