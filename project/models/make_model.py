@@ -3,7 +3,6 @@ from pytorchvideo.models import resnet, csn
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import copy
 
 

@@ -60,7 +60,7 @@ def get_parameters():
     parser.add_argument('--data_path', type=str, default="/workspace/data/dataset/", help='meta dataset path')
     parser.add_argument('--split_data_path', type=str,
                         default="/workspace/data/splt_dataset_512", help="split dataset path")
-    parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/splt_pad_dataset",
+    parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/split_pad_dataset_512",
                         help="split and pad dataset with detection method.")
 
     parser.add_argument('--log_path', type=str, default='./logs', help='the lightning logs saved path')

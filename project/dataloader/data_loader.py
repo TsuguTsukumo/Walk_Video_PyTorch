@@ -80,7 +80,6 @@ class WalkDataModule(LightningDataModule):
         self._DATA_PATH = opt.data_path
         self._SPLIT_PAD_DATA_PATH = opt.split_pad_data_path
         self._SPLIT_DATA_PATH = opt.split_data_path
-        self._CLIP_DURATION = opt.clip_duration
 
         self._PRE_PROCESS_FLAG = opt.pre_process_flag
 
@@ -88,6 +87,8 @@ class WalkDataModule(LightningDataModule):
         self._NUM_WORKERS = opt.num_workers
         self._IMG_SIZE = opt.img_size
 
+        # frame rate
+        self._CLIP_DURATION = opt.clip_duration
         self.uniform_temporal_subsample_num = opt.uniform_temporal_subsample_num
 
         self.train_transform = Compose(
@@ -150,7 +151,7 @@ class WalkDataModule(LightningDataModule):
             stage (Optional[str], optional): trainer.stage, in ('fit', 'validate', 'test', 'predict'). Defaults to None.
         '''
         if self._PRE_PROCESS_FLAG:
-            data_path = self._SPLIT_DATA_PATH
+            data_path = self._SPLIT_PAD_DATA_PATH
             transform = self.train_transform
             print("run pre process model!")
         else:

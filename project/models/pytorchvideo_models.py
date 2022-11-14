@@ -105,9 +105,11 @@ class WalkVideoClassificationLightningModule(LightningModule):
         # soft_margin_loss = F.soft_margin_loss(y_hat_sigmoid, label.float())
 
         accuracy = self._accuracy(y_hat_sigmoid, label)
+        precision = self._precision(y_hat_sigmoid, label)
 
-        self.log('train_loss', loss)
-        self.log('train_acc', accuracy)
+        self.log_dict({'train_loss': loss, 'train_acc': accuracy, 'train_precision': precision})
+        # self.log('train_loss', loss)
+        # self.log('train_acc', accuracy)
 
         return loss
 
@@ -251,7 +253,14 @@ class WalkVideoClassificationLightningModule(LightningModule):
                 print("\t", name)
             
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return optimizer
+        
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer),
+                "monitor": "val_loss",
+            },
+        }
         # return torch.optim.SGD(self.parameters(), lr=self.lr)
 
     def _get_name(self):
