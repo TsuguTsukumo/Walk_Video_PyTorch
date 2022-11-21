@@ -78,8 +78,10 @@ class WalkDataModule(LightningDataModule):
     def __init__(self, opt):
         super().__init__()
         self._DATA_PATH = opt.data_path
-        self._SPLIT_PAD_DATA_PATH = opt.split_pad_data_path
-        self._SPLIT_DATA_PATH = opt.split_data_path
+        # self._SPLIT_PAD_DATA_PATH = opt.split_pad_data_path
+        # self._SPLIT_DATA_PATH = opt.split_data_path
+        # use this for dataloader
+        self._TRAIN_PATH = opt.train_path
 
         self._PRE_PROCESS_FLAG = opt.pre_process_flag
 
@@ -151,13 +153,16 @@ class WalkDataModule(LightningDataModule):
             stage (Optional[str], optional): trainer.stage, in ('fit', 'validate', 'test', 'predict'). Defaults to None.
         '''
         if self._PRE_PROCESS_FLAG:
-            data_path = self._SPLIT_PAD_DATA_PATH
+            data_path = self._TRAIN_PATH
             transform = self.train_transform
-            print("run pre process model!")
+            print("#" * 50)
+            print("run pre process model!", data_path)
+            print("#" * 50)
+
         else:
             data_path = self._DATA_PATH
             transform = self.raw_train_transform
-            print("run not pre process model!")
+            print("run not pre process model!", data_path)
 
         # if stage == "fit" or stage == None:
         if stage in ("fit", None):

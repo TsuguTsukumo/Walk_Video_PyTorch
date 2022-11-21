@@ -5,9 +5,7 @@ just for debug
 # %%
 import torch 
 import os 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
-# %cd ../
+# %cd /workspace/Walk_Video_PyTorch/project
 
 # %%
 from models.pytorchvideo_models import WalkVideoClassificationLightningModule
@@ -30,11 +28,11 @@ opt.num_workers = 8
 opt.batch_size = 4
 opt.gpu_num = 1
 
-opt.version = '0821_2_16'
+opt.version = '1114_1_16'
 opt.model = "resnet"
 opt.model_depth = 50
 
-opt.clip_duration = 2
+opt.clip_duration = 1
 opt.uniform_temporal_subsample_num = 16
 opt.version = opt.version + '_' + opt.model + '_depth' + str(opt.model_depth)
 
@@ -46,7 +44,7 @@ model = WalkVideoClassificationLightningModule(opt)
 
 # get last ckpt path
 # ckpt_path = get_ckpt_path(opt)
-ckpt_path = '/workspace/logs/resnet/test_resnet_depth50/checkpoints/epoch=44-val_loss=4.42-val_acc=0.4292.ckpt'
+ckpt_path = '/workspace/Walk_Video_PyTorch/logs/resnet/1114_1_16_resnet_depth50/checkpoints/epoch=2-val_loss=3.56-val_acc=0.5034.ckpt'
 
 # model = WalkVideoClassificationLightningModule.load_from_checkpoint(ckpt_path)
 model = model.load_from_checkpoint(ckpt_path)

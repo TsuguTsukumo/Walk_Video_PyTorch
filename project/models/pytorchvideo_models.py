@@ -26,6 +26,8 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         self.fusion_method = hparams.fusion_method
 
+        self.ACC = {}
+
         if self.fusion_method == 'slow_fusion':
             self.model = MakeVideoModule(hparams)
 
@@ -108,8 +110,6 @@ class WalkVideoClassificationLightningModule(LightningModule):
         precision = self._precision(y_hat_sigmoid, label)
 
         self.log_dict({'train_loss': loss, 'train_acc': accuracy, 'train_precision': precision})
-        # self.log('train_loss', loss)
-        # self.log('train_acc', accuracy)
 
         return loss
 
@@ -178,16 +178,20 @@ class WalkVideoClassificationLightningModule(LightningModule):
         
         return accuracy
 
-    # def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs):
+        pass
         
-    #     val_metric = torch.stack(outputs, dim=0)
+        # val_metric = torch.stack(outputs, dim=0)
 
-    #     final_acc = torch.sum(val_metric) / len(val_metric)
+        # final_acc = (torch.sum(val_metric) / len(val_metric)).item()
 
-    #     print(final_acc)
+        # print('Epoch: %s, avgAcc: %s' % (self.current_epoch, final_acc))
 
-    #     return final_acc
+        # self.ACC[self.current_epoch] = final_acc
 
+    def on_validation_end(self) -> None:
+        pass
+            
     def test_step(self, batch, batch_idx):
         '''
         test step when trainer.test called
@@ -248,9 +252,9 @@ class WalkVideoClassificationLightningModule(LightningModule):
         print("Params to learn:")
 
         # observe that all parameters are being optimized      
-        for name, param in self.model.named_parameters():
-            if param.requires_grad == True:
-                print("\t", name)
+        # for name, param in self.model.named_parameters():
+        #     if param.requires_grad == True:
+        #         print("\t", name)
             
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         
