@@ -26,8 +26,6 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         self.fusion_method = hparams.fusion_method
 
-        self.ACC = {}
-
         if self.fusion_method == 'slow_fusion':
             self.model = MakeVideoModule(hparams)
 
@@ -35,8 +33,15 @@ class WalkVideoClassificationLightningModule(LightningModule):
             if self.model_type == 'resnet':
                 self.model=self.model.make_walk_resnet()
 
+            elif self.model_type == 'r2plus1d':
+                self.model = self.model.make_walk_r2plus1d()
+
             elif self.model_type == 'csn':
                 self.model=self.model.make_walk_csn()
+
+            elif self.model_type == 'x3d':
+                self.model = self.model.make_walk_x3d()
+
 
         elif self.fusion_method == 'single_frame':
             self.model = single_frame(hparams)
