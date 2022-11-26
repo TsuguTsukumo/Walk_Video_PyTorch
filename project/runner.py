@@ -11,7 +11,7 @@ VIDEO_LENGTH = ['1', '2', '3']
 VIDEO_FRAME = ['8', '16', '32']
 
 MAIN_FILE_PATH = '/workspace/Walk_Video_PyTorch/project/main.py'
-MODEL = ['resnet']
+MODEL = ['i3d']
 
 def get_parameters():
     '''

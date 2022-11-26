@@ -45,6 +45,12 @@ class WalkVideoClassificationLightningModule(LightningModule):
             elif self.model_type == 'slowfast':
                 self.model = self.model.make_walk_slow_fast()
 
+            elif self.model_type == 'i3d':
+                self.model = self.model.make_walk_i3d()
+
+            elif self.model_type == 'c2d':
+                self.model == self.model.make_walk_c2d()
+
 
         elif self.fusion_method == 'single_frame':
             self.model = single_frame(hparams)
