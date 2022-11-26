@@ -74,7 +74,7 @@ class MakeVideoModule(nn.Module):
 
         if self.transfor_learning:
             model = torch.hub.load("facebookresearch/pytorchvideo:main", model='c2d_r50', pretrained=True)
-            model.blocks[-1].proj = nn.Linear(2048, self.model_class_num)
+            model.blocks[-1].proj = nn.Linear(2048, self.model_class_num, bias=True)
 
             return model
         else:

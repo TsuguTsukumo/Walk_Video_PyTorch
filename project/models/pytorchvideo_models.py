@@ -49,7 +49,7 @@ class WalkVideoClassificationLightningModule(LightningModule):
                 self.model = self.model.make_walk_i3d()
 
             elif self.model_type == 'c2d':
-                self.model == self.model.make_walk_c2d()
+                self.model = self.model.make_walk_c2d()
 
 
         elif self.fusion_method == 'single_frame':
