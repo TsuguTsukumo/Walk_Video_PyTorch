@@ -2,12 +2,18 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np 
 
 from models.make_model import MakeVideoModule, early_fusion, late_fusion, single_frame
 
 from pytorch_lightning import LightningModule
 
 from utils.metrics import *
+
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+import matplotlib.pyplot as plt 
+import seaborn as sns
 
 # %%
 
@@ -215,9 +221,17 @@ class WalkVideoClassificationLightningModule(LightningModule):
             batch_idx (_type_): _description_
         '''
 
-        # input and model define 
-        label = batch['label'].detach() # b, class_num
+        # input and label
         video = batch['video'].detach() # b, c, t, h, w
+
+        if self.fusion_method == 'single_frame': 
+            label = batch['label'].detach()
+
+            # when batch > 1, for multi label, to repeat label in (bxt)
+            label = label.repeat_interleave(self.uniform_temporal_subsample_num).squeeze()
+
+        else:
+            label = batch['label'].detach() # b, class_num
 
         self.model.eval()
 
@@ -225,10 +239,15 @@ class WalkVideoClassificationLightningModule(LightningModule):
         with torch.no_grad():
             preds = self.model(video)
 
-        preds_sigmoid = torch.sigmoid(preds).squeeze(dim=-1)
+        # when torch.size([1]), not squeeze.
+        if preds.size()[0] != 1 or len(preds.size()) != 1 :
+            preds = preds.squeeze(dim=-1)
+            preds_sigmoid = torch.sigmoid(preds)
+        else:
+            preds_sigmoid = torch.sigmoid(preds)
 
         # squeeze(dim=-1) to keep the torch.Size([1]), not null.
-        test_loss = F.binary_cross_entropy_with_logits(preds.squeeze(dim=-1), label.float())
+        val_loss = F.binary_cross_entropy_with_logits(preds, label.float())
 
         # calc the metric, function from torchmetrics
         accuracy = self._accuracy(preds_sigmoid, label)
@@ -237,18 +256,41 @@ class WalkVideoClassificationLightningModule(LightningModule):
 
         confusion_matrix = self._confusion_matrix(preds_sigmoid, label)
 
-        # log the test loss, and test acc, in step and in epoch
-        self.log_dict({'test_loss': test_loss, 'test_acc': accuracy, 'test_precision': precision}, on_step=False, on_epoch=True)
+        # log the val loss and val acc, in step and in epoch.
+        self.log_dict({'test_loss': val_loss, 'test_acc': accuracy, 'test_precision': precision}, on_step=False, on_epoch=True)
 
-        return accuracy
+        return {
+            'pred': preds_sigmoid.tolist(),
+            'label': label.tolist()
+        }
         
     def test_epoch_end(self, outputs):
+        #todo try to store the pred or confusion matrix
+        pred_list = []
+        label_list = []
 
-        test_metric = torch.stack(outputs, dim=0)
+        for i in outputs:
+            for number in i['pred']:
+                if number > 0.5:
+                    pred_list.append(1)
+                else:
+                    pred_list.append(0)
+            for number in i['label']:
+                label_list.append(number)
 
-        final_acc = torch.sum(test_metric) / len(test_metric)
-        
-        print(final_acc)
+        pred = torch.tensor(pred_list)
+        label = torch.tensor(label_list)
+
+        cm = confusion_matrix(label, pred)
+        ax = sns.heatmap(cm, annot=True, fmt="3d")
+
+        ax.set_title('confusion matrix')
+        ax.set(xlabel="pred class", ylabel="ground truth")
+        ax.xaxis.tick_top()
+        plt.show()
+        plt.savefig('test.png')
+
+        return cm 
 
     def configure_optimizers(self):
         '''
