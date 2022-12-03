@@ -11,7 +11,6 @@ VIDEO_LENGTH = ['1', '2', '3']
 VIDEO_FRAME = ['8', '16', '32']
 
 MAIN_FILE_PATH = '/workspace/Walk_Video_PyTorch/project/main.py'
-MODEL = ['i3d']
 
 def get_parameters():
     '''
@@ -29,6 +28,9 @@ def get_parameters():
     # Transfor_learning
     parser.add_argument('--transfor_learning', action='store_true', help='if use the transformer learning')
 
+    # pre process flag
+    parser.add_argument('--pre_process_flag', action='store_true', help='if use the pre process video, which detection.')
+
     # Path
     parser.add_argument('--log_path', type=str, default='./logs', help='the lightning logs saved path')
 
@@ -40,16 +42,38 @@ if __name__ == '__main__':
     config, unkonwn = get_parameters()
 
     transfor_learning = config.transfor_learning
+    pre_process_flag = config.pre_process_flag
+    model = config.model
 
     data = str(time.localtime().tm_mon) + str(time.localtime().tm_mday)
 
+
     symbol = '_'
 
-    for model in MODEL:
-        for length in VIDEO_LENGTH:
-            for frames in VIDEO_FRAME:
+    for length in VIDEO_LENGTH:
+        for frames in VIDEO_FRAME:
+            
+            if transfor_learning:
                 
-                if transfor_learning:
+                if not pre_process_flag:
+
+                    version = symbol.join([data, length, frames, 'not_pre_process'])
+                    log_path = '/workspace/Walk_Video_PyTorch/logs/' + symbol.join([version, model]) + '.log'
+
+                    with open(log_path, 'w') as f:
+
+                        # start one train.
+                        subprocess.run(['python', MAIN_FILE_PATH,
+                                        '--version', version,
+                                        '--model', model,
+                                        '--clip_duration', length,
+                                        'uniform_temporal_subsample_num', frames,
+                                        '--gpu_num', str(config.gpu_num),
+                                        # '--pre_process_flag',
+                                        '--transfor_learning',
+                                        ], stdout=f, stderr=f)
+
+                else:
 
                     version = symbol.join([data, length, frames])
                     log_path = '/workspace/Walk_Video_PyTorch/logs/' + symbol.join([version, model]) + '.log'
@@ -67,23 +91,23 @@ if __name__ == '__main__':
                                         '--transfor_learning',
                                         ], stdout=f, stderr=f)
 
-                else:
+            else:
 
-                    version = symbol.join([data, length, frames, 'not_transfor_learning'])
-                    log_path = '/workspace/Walk_Video_PyTorch/logs/' + symbol.join([version, model]) + '.log'
+                version = symbol.join([data, length, frames, 'not_transfor_learning'])
+                log_path = '/workspace/Walk_Video_PyTorch/logs/' + symbol.join([version, model]) + '.log'
 
-                    with open(log_path, 'w') as f:
+                with open(log_path, 'w') as f:
 
-                        # start one train.
-                        subprocess.run(['python', MAIN_FILE_PATH,
-                                        '--version', version,
-                                        '--model', model,
-                                        '--clip_duration', length,
-                                        'uniform_temporal_subsample_num', frames,
-                                        '--gpu_num', str(config.gpu_num),
-                                        '--pre_process_flag',
-                                        '--max_epochs', '100'
-                                        # '--transfor_learning',
-                                        ], stdout=f, stderr=f)
+                    # start one train.
+                    subprocess.run(['python', MAIN_FILE_PATH,
+                                    '--version', version,
+                                    '--model', model,
+                                    '--clip_duration', length,
+                                    'uniform_temporal_subsample_num', frames,
+                                    '--gpu_num', str(config.gpu_num),
+                                    '--pre_process_flag',
+                                    '--max_epochs', '100'
+                                    # '--transfor_learning',
+                                    ], stdout=f, stderr=f)
 
-                print('finish %s' % log_path)
+            print('finish %s' % log_path)

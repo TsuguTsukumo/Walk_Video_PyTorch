@@ -77,9 +77,7 @@ def WalkDataset(
 class WalkDataModule(LightningDataModule):
     def __init__(self, opt):
         super().__init__()
-        self._DATA_PATH = opt.data_path
-        # self._SPLIT_PAD_DATA_PATH = opt.split_pad_data_path
-        # self._SPLIT_DATA_PATH = opt.split_data_path
+
         # use this for dataloader
         self._TRAIN_PATH = opt.train_path
 
@@ -160,9 +158,11 @@ class WalkDataModule(LightningDataModule):
             print("#" * 50)
 
         else:
-            data_path = self._DATA_PATH
+            data_path = self._TRAIN_PATH
             transform = self.raw_train_transform
+            print("#" * 50)
             print("run not pre process model!", data_path)
+            print("#" * 50)
 
         # if stage == "fit" or stage == None:
         if stage in ("fit", None):

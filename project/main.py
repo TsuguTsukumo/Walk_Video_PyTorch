@@ -154,11 +154,13 @@ if __name__ == '__main__':
     # K Fold CV
     #############
 
-    SPLIT_PAD_DATA_PATH = config.split_pad_data_path
-    SPLIT_DATA_PATH = config.split_data_path
+    if config.pre_process_flag:
+        DATA_PATH = config.split_pad_data_path
+    else:
+        DATA_PATH = config.data_path
 
     # get the fold number
-    fold_num = os.listdir(SPLIT_PAD_DATA_PATH)
+    fold_num = os.listdir(DATA_PATH)
     fold_num.sort()
     fold_num.remove('raw')
 
@@ -174,7 +176,7 @@ if __name__ == '__main__':
         print('Strat %s' % fold)
         print('#' * 50)
 
-        config.train_path = os.path.join(SPLIT_PAD_DATA_PATH, fold)
+        config.train_path = os.path.join(DATA_PATH, fold)
         config.fold = fold
 
         # connect the version + model + depth, for tensorboard logger.
