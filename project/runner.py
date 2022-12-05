@@ -45,13 +45,14 @@ if __name__ == '__main__':
     pre_process_flag = config.pre_process_flag
     model = config.model
 
-    data = str(time.localtime().tm_mon) + str(time.localtime().tm_mday)
 
 
     symbol = '_'
 
     for length in VIDEO_LENGTH:
         for frames in VIDEO_FRAME:
+
+            data = str(time.localtime().tm_mon) + str(time.localtime().tm_mday)
             
             if transfor_learning:
                 
@@ -67,7 +68,7 @@ if __name__ == '__main__':
                                         '--version', version,
                                         '--model', model,
                                         '--clip_duration', length,
-                                        'uniform_temporal_subsample_num', frames,
+                                        '--uniform_temporal_subsample_num', frames,
                                         '--gpu_num', str(config.gpu_num),
                                         # '--pre_process_flag',
                                         '--transfor_learning',
@@ -85,7 +86,7 @@ if __name__ == '__main__':
                                         '--version', version,
                                         '--model', model,
                                         '--clip_duration', length,
-                                        'uniform_temporal_subsample_num', frames,
+                                        '--uniform_temporal_subsample_num', frames,
                                         '--gpu_num', str(config.gpu_num),
                                         '--pre_process_flag',
                                         '--transfor_learning',
@@ -103,7 +104,7 @@ if __name__ == '__main__':
                                     '--version', version,
                                     '--model', model,
                                     '--clip_duration', length,
-                                    'uniform_temporal_subsample_num', frames,
+                                    '--uniform_temporal_subsample_num', frames,
                                     '--gpu_num', str(config.gpu_num),
                                     '--pre_process_flag',
                                     '--max_epochs', '100'

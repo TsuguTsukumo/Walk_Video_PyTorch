@@ -5,11 +5,8 @@ import torchmetrics
 
 def get_Accuracy(num_class):
 
-    accuracy = torchmetrics.Accuracy(
-        num_classes=num_class,
-        average='micro',
-        multiclass=False
-        # top_k=1
+    accuracy = torchmetrics.classification.BinaryAccuracy(
+        threshold=0.5
     )
 
     return accuracy
@@ -17,10 +14,7 @@ def get_Accuracy(num_class):
 
 def get_Precision(num_class):
 
-    precision = torchmetrics.Precision(
-        num_classes=num_class,
-        average='micro',
-        multiclass=False,
+    precision = torchmetrics.classification.BinaryPrecision(
     )
 
     return precision
@@ -48,7 +42,7 @@ def get_Dice():
 
 def get_Precision_Recall():
     precision_recall = torchmetrics.PrecisionRecallCurve(
-        num_classes=2,
+        num_classes=1,
         pos_label=1
     )
 
@@ -71,10 +65,7 @@ def get_F1Score():
 
 
 def get_Confusion_Matrix():
-    confusion_matrix = torchmetrics.ConfusionMatrix(
-        num_classes=2,
-        multilabel=False
-    )
+    confusion_matrix = torchmetrics.classification.BinaryConfusionMatrix()
 
     return confusion_matrix
 
