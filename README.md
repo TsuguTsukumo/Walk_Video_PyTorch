@@ -174,23 +174,21 @@ python project/main.py --version [the version for train] --model resnet --model_
 
 ## Dataset
 
-Due to the limitation of data, we divide 80% of the data into the training set and set the remaining 20% as the validation and test data sets.
+Due to the limitation of the dataset, we decide to use 5 fold cross validation.
+This figure give the details of our dataset, where data class mean the differenet disease label, as ASD and non-ASD.
+The data group mean the number of patients, here we have 81 person.
+![data_distribution](imgs/data_distribution.png)
 
-The detail number of the split dataset are given in next table.
+After the 5 fold cross validation splitted, we get the final train/val dataset.
+Here the oringal bar mean the val dataset and the blue bar mean the train dataset.
 
-| the number of video | ASD | ASD_not |
-| ------------------- | --- | ------- |
-| train               | 923 | 815     |
-| val                 | 123 | 96      |
+![5fold_cv](imgs/stratified_group_kfold.png)
 
-The detail number of different disease and the number of every disease object are given in next talbe.
+> ⚠️ Ensure that the same patient does not appear in training/validation at the same time. 
+The number of videos can be guaranteed to be balanced, but the number of patients cannot.
 
-| disease | number of video | object for train | object for val |
-| ------- | --------------- | ---------------- | -------------- |
-| ASD     | 1046            | 48               | 6              |
-| DHS     | 587             | 14               | 2              |
-| HipOA   | 64              | 3                | null           |
-| LCS     | 260             | 7                | 2              |
+Next give the details information of different fold.
+![5fold_details](imgs/5fold_details.png)
 
 ## Data augmentation  
 
@@ -230,7 +228,7 @@ So far, we have used the 3D Resnet structure, which are given in the next figure
 
 ## Experimental point
 
-1. different frame in 3DCNN.
+1. different frame with 3DCNN.
 2. pre-train/scratch different in experimental.
 3. pre-process (object detection extract) make sense in the experimental. (prepare)
 
