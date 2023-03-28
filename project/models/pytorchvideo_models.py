@@ -301,17 +301,6 @@ class WalkVideoClassificationLightningModule(LightningModule):
             lr_scheduler: the selected lr scheduler.
         '''
 
-        # if self.transfor_learning:
-            
-        #     params_to_update = []
-
-        print("Params to learn:")
-
-        # observe that all parameters are being optimized      
-        # for name, param in self.model.named_parameters():
-        #     if param.requires_grad == True:
-        #         print("\t", name)
-            
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         
         return {

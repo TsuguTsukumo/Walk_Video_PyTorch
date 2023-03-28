@@ -175,14 +175,14 @@ class WalkDataModule(LightningDataModule):
         if stage in ("fit", "validate", None):
             self.val_dataset = WalkDataset(
                 data_path=os.path.join(data_path, "val"),
-                clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
+                clip_sampler=make_clip_sampler("uniform", self._CLIP_DURATION),
                 transform=transform,
             )
 
         if stage in ("predict", "test", None):
             self.test_pred_dataset = WalkDataset(
                 data_path=os.path.join(data_path, "val"),
-                clip_sampler=make_clip_sampler("random", self._CLIP_DURATION),
+                clip_sampler=make_clip_sampler("uniform", self._CLIP_DURATION),
                 transform=transform
             )
 
