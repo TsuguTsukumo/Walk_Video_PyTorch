@@ -62,6 +62,8 @@ def get_parameters():
                         default="/workspace/data/splt_dataset_512", help="split dataset path")
     parser.add_argument('--split_pad_data_path', type=str, default="/workspace/data/split_pad_dataset_512/",
                         help="split and pad dataset with detection method.")
+    parser.add_argument('--seg_data_path', type=str, default="/workspace/data/segmentation_dataset_512",
+                        help="segmentation dataset with mediapipe, with 5 fold cross validation.")
 
     parser.add_argument('--log_path', type=str, default='./logs', help='the lightning logs saved path')
 
@@ -101,14 +103,14 @@ def train(hparams):
         monitor="val_acc",
         mode="max",
         save_last=True,
-        save_top_k=5,
+        save_top_k=3,
 
     )
 
     # define the early stop.
     early_stopping = EarlyStopping(
         monitor='val_acc',
-        patience=10,
+        patience=5,
         mode='max',
     )
 
@@ -156,6 +158,7 @@ if __name__ == '__main__':
 
     if config.pre_process_flag:
         DATA_PATH = config.split_pad_data_path
+        # DATA_PATH = config.seg_data_path
     else:
         DATA_PATH = config.data_path
 

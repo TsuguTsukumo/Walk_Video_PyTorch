@@ -7,8 +7,8 @@ import time
 import subprocess
 from argparse import ArgumentParser
 
-VIDEO_LENGTH = ['1', '2', '3']
-VIDEO_FRAME = ['8', '16', '32']
+VIDEO_LENGTH = ['1']
+VIDEO_FRAME = ['8']
 
 MAIN_FILE_PATH = '/workspace/Walk_Video_PyTorch/project/main.py'
 
@@ -45,7 +45,8 @@ if __name__ == '__main__':
     pre_process_flag = config.pre_process_flag
     model = config.model
 
-
+    if config.model == 'x3d':
+        VIDEO_FRAME = ['16']
 
     symbol = '_'
 
