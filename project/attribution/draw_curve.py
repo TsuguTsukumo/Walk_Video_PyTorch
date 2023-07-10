@@ -51,14 +51,14 @@ class opt:
     transfor_learning = True
     pre_process_flag = True
 
-DATA_PATH = "/workspace/data/segmentation_dataset_512"
-# DATA_PATH = "/workspace/data/split_pad_dataset_512"
+# DATA_PATH = "/workspace/data/segmentation_dataset_512"
+DATA_PATH = "/workspace/data/split_pad_dataset_512"
 
 # %%
 def get_best_ckpt(length: str, frame: str, fold: str):
 
     ckpt_path = '/workspace/Walk_Video_PyTorch/logs/resnet/'
-    version = '54_1_8_resnet'
+    version = '516_1_8'
     ckpt_path_list = os.listdir(ckpt_path)
     ckpt_path_list.sort()
 
