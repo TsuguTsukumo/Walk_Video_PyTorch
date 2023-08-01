@@ -1,3 +1,9 @@
+"""
+analysis method for experiment results.
+across 5 fold cross validation and then print the metrics.
+meanwhile can print the CM.
+"""
+
 # %%
 import torch 
 import torch.nn.functional as F
@@ -20,23 +26,23 @@ seed_everything(42, workers=True)
 
 import torchmetrics
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # %%
 # define the metrics.
 _accuracy = torchmetrics.classification.BinaryAccuracy()
 _precision = torchmetrics.classification.BinaryPrecision()
-_binary_recall = torchmetrics.classification.BinaryRecall()
-_binary_f1 = torchmetrics.classification.BinaryF1Score()
-
-_confusion_matrix = torchmetrics.classification.BinaryConfusionMatrix()
-
+_recall = torchmetrics.classification.BinaryRecall()
+_f1_score = torchmetrics.classification.BinaryF1Score()
 _aucroc = torchmetrics.classification.BinaryAUROC()
+
+_confusion_matrix = torchmetrics.classification.BinaryConfusionMatrix(normalize='true')
+
 
 # %%
 class opt:
     num_workers = 8
-    batch_size = 16
+    batch_size = 64
 
     fusion_method = 'slow_fusion'
     fix_layer = 'all'
@@ -50,15 +56,17 @@ class opt:
 
     transfor_learning = True
     pre_process_flag = True
+    split_pad_data_path = '/workspace/data/three_part_split_pad_dataset/A/'
 
 # DATA_PATH = "/workspace/data/segmentation_dataset_512"
-DATA_PATH = "/workspace/data/split_pad_dataset_512"
+# DATA_PATH = "/workspace/data/split_pad_dataset_512"
+DATA_PATH = "/workspace/data/three_part_split_pad_dataset"
 
 # %%
 def get_best_ckpt(length: str, frame: str, fold: str):
 
     ckpt_path = '/workspace/Walk_Video_PyTorch/logs/resnet/'
-    version = '516_1_8'
+    version = '1119_1_8'
     ckpt_path_list = os.listdir(ckpt_path)
     ckpt_path_list.sort()
 
@@ -143,9 +151,10 @@ VIDEO_LENGTH = ['1']
 VIDEO_FRAME = ['8']
 
 # %%
-fold_num = os.listdir(DATA_PATH)
+fold_num = os.listdir(os.path.join(DATA_PATH, 'A'))
 fold_num.sort()
-fold_num.remove('raw')
+if 'raw' in fold_num:
+    fold_num.remove('raw')
 
 symbol = '_'
 
@@ -161,7 +170,7 @@ for length in VIDEO_LENGTH:
 
         for fold in fold_num:
 
-            opt.train_path = os.path.join(DATA_PATH, fold)
+            opt.train_path = os.path.join(DATA_PATH, 'A', fold)
 
             #################
             # start k Fold CV
@@ -204,11 +213,11 @@ for length in VIDEO_LENGTH:
         print('the result of %ss %sframe:' % (length, frame))
         print('accuracy: %s' % _accuracy(pred, label))
         print('precision: %s' % _precision(pred, label))
-        print('_binary_recall: %s' % _binary_recall(pred, label))
-        print('_binary_f1: %s' % _binary_f1(pred, label))
+        print('_binary_recall: %s' % _recall(pred, label))
+        print('_binary_f1: %s' % _f1_score(pred, label))
         print('_aurroc: %s' % _aucroc(pred, label))
         print('_confusion_matrix: %s' % _confusion_matrix(pred, label))
-        print('#' * 50)
+        print('#' * 100)
 
 # %%
 import seaborn as sns
@@ -222,7 +231,7 @@ for i in range(cm.shape[0]):
     for j in range(cm.shape[1]):
         cm[i][j] = float(cm[i][j] / total)
 
-ax = sns.heatmap(cm, annot=True, fmt=".2f", xticklabels=['ASD', 'non_ASD'], yticklabels=['ASD', 'non_ASD'])
+ax = sns.heatmap(cm, annot=True, fmt=".4f", xticklabels=['ASD', 'non_ASD'], yticklabels=['ASD', 'non_ASD'])
 
 ax.set_title('Confusion Matrix')
 ax.set(xlabel="pred class", ylabel="ground truth")
@@ -244,4 +253,65 @@ plt.ylabel("True Positive Rate")
 plt.title("AUROC curves")
 plt.legend()
 plt.show()
+
+# %% 
+len(one_condition_pred_list[0])
+# %%
+one_acc = []
+one_f1 = []
+one_auroc = []
+
+for i in range(len(one_condition_label_list)):
+    one_batch_pred = torch.tensor(one_condition_pred_list[i]).cpu()
+    one_batch_label = torch.tensor(one_condition_label_list[i]).cpu()
+
+    print('*' * 100)
+    print('the result of Fold %s, %ss %sframe:' % (fold, opt.clip_duration, opt.uniform_temporal_subsample_num))
+    print('accuracy: %s' % _accuracy(one_batch_pred, one_batch_label))
+    one_acc.append(_accuracy(one_batch_pred, one_batch_label).tolist())
+    print('precision: %s' % _precision(one_batch_pred, one_batch_label))
+    print('recall: %s' % _recall(one_batch_pred, one_batch_label))
+    print('f1_score: %s' % _f1_score(one_batch_pred, one_batch_label))
+    one_f1.append(_f1_score(one_batch_pred, one_batch_label).tolist())
+    print('aurroc: %s' % _aucroc(one_batch_pred, one_batch_label))
+    one_auroc.append(_aucroc(one_batch_pred, one_batch_label).tolist())
+    print('confusion_matrix: %s' % _confusion_matrix(one_batch_pred, one_batch_label))
+    print('#' * 100)
+
+    cm = _confusion_matrix(one_batch_pred, one_batch_label)
+    ax = sns.heatmap(cm, annot=True, fmt="3d")
+
+    ax.set_title('Fold%d confusion matrix' % i)
+    ax.set(xlabel="pred class", ylabel="ground truth")
+    ax.xaxis.tick_top()
+    plt.show()
+# %%
+import numpy as np 
+
+print(np.mean(one_acc), np.var(one_acc), np.std(one_acc))
+print(np.mean(one_f1), np.var(one_f1), np.std(one_f1))
+print(np.mean(one_auroc), np.var(one_auroc), np.std(one_auroc))
+
+# %%
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np 
+cm =  _confusion_matrix(pred, label)
+# cm = np.array([[0,0], [0,0]])
+ax = sns.heatmap(cm, annot=True, annot_kws={"fontsize": 20}, vmin=0, vmax=1, fmt=".4f", xticklabels=['ASD', 'non_ASD'], yticklabels=['ASD', 'non_ASD'])
+
+# color bar font size 
+cbar = ax.collections[0].colorbar
+cbar.ax.tick_params(labelsize=15)
+
+ax.set_title('A. A part, walking start.', fontsize=20)
+ax.set_xlabel("pred class", fontsize=20)
+ax.set_ylabel("ground truth", fontsize=20)
+ax.xaxis.tick_top()
+
+plt.xticks(fontsize=20)
+plt.yticks(fontsize=20)
+plt.savefig('C.png')
+plt.show()
+
 # %%

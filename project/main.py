@@ -80,8 +80,8 @@ def get_parameters():
 
 def train(hparams):
 
-    # fixme will occure bug, with deterministic = true
-    # seed_everything(42, workers=True)
+    # set seed
+    seed_everything(42, workers=True)
 
     classification_module = WalkVideoClassificationLightningModule(hparams)
 
@@ -165,7 +165,9 @@ if __name__ == '__main__':
     # get the fold number
     fold_num = os.listdir(DATA_PATH)
     fold_num.sort()
-    fold_num.remove('raw')
+    
+    if 'raw' in fold_num:
+        fold_num.remove('raw')
 
     store_Acc_Dict = {}
     sum_list = []

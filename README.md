@@ -49,9 +49,6 @@ Walk_Video_PyTorch
     |   pytorch lightning modeul based model, where used for train and val.
     |-- prepare_video
     |   one stage prepare video code location
-    |-- tests
-    |   `-- logs
-    |   test logs location and code
     `-- utils
         tools for the code.
 ```
