@@ -1,0 +1,4 @@
+dataset:
+  data_path: "/workspace/data/dataset/" #  meta dataset path
+  # split_data_path: "/workspace/data/split_pad_dataset_512/" #  split dataset path with 512 img size
+  split_pad_data_path: "/workspace/data/split_pad_dataset_512/" #  split and pad dataset with detection method

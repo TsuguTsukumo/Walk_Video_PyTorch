@@ -1,0 +1,31 @@
+# the yaml config for hydra
+defaults:
+  - dataset: split_pad_dataset
+  - optimizer: adam
+
+model:
+  model: 'resnet'
+  img_size: 224
+  version: 'test' # the version of logger, such data
+  model_class_num: 1 # the class num of model
+  model_depth: 50 # choices=[50, 101, 152], help='the depth of used model'
+
+  # Training setting
+  max_epochs: 50 # numer of epochs of training
+  batch_size: 8 # batch size for the dataloader
+  num_workers: 8 # dataloader for load video
+  clip_duration: 1 # clip duration for the video
+  uniform_temporal_subsample_num: 8 # num frame from the clip duration
+  
+  gpu_num: 0 # choices=[0, 1], help='the gpu number whicht to train'
+  # ablation experment 
+  # different fusion method 
+  fusion_method: 'slow_fusion' # choices=['single_frame', 'early_fusion', 'late_fusion', 'slow_fusion'], help="select the different fusion method from ['single_frame', 'early_fusion', 'late_fusion']")
+  # pre process flag
+  pre_process_flag: True # help='if use the pre process video, which detection.')
+  # Transfor_learning
+  transfor_learning: True # if use the transformer learning
+  fix_layer: 'all' # choices=['all', 'head', 'stem_head', 'stage_head'], help="select the ablation study within the choices ['all', 'head', 'stem_head', 'stage_head'].")
+
+  # using pretrained
+  pretrained_model: True #  if use the pretrained model for training.

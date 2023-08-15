@@ -66,7 +66,7 @@ DATA_PATH = "/workspace/data/three_part_split_pad_dataset"
 def get_best_ckpt(length: str, frame: str, fold: str):
 
     ckpt_path = '/workspace/Walk_Video_PyTorch/logs/resnet/'
-    version = '1119_1_8'
+    version = '516_1_8'
     ckpt_path_list = os.listdir(ckpt_path)
     ckpt_path_list.sort()
 
@@ -151,7 +151,7 @@ VIDEO_LENGTH = ['1']
 VIDEO_FRAME = ['8']
 
 # %%
-fold_num = os.listdir(os.path.join(DATA_PATH, 'A'))
+fold_num = os.listdir(os.path.join(DATA_PATH, 'C'))
 fold_num.sort()
 if 'raw' in fold_num:
     fold_num.remove('raw')
@@ -170,7 +170,7 @@ for length in VIDEO_LENGTH:
 
         for fold in fold_num:
 
-            opt.train_path = os.path.join(DATA_PATH, 'A', fold)
+            opt.train_path = os.path.join(DATA_PATH, 'C', fold)
 
             #################
             # start k Fold CV
@@ -304,7 +304,7 @@ ax = sns.heatmap(cm, annot=True, annot_kws={"fontsize": 20}, vmin=0, vmax=1, fmt
 cbar = ax.collections[0].colorbar
 cbar.ax.tick_params(labelsize=15)
 
-ax.set_title('A. A part, walking start.', fontsize=20)
+ax.set_title('C. C part, walking end.', fontsize=20)
 ax.set_xlabel("pred class", fontsize=20)
 ax.set_ylabel("ground truth", fontsize=20)
 ax.xaxis.tick_top()
