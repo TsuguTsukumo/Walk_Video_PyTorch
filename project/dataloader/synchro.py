@@ -53,10 +53,10 @@ def sync_videos(video_path1, video_path2, output_path):
     os.remove(audio_path1)
     os.remove(audio_path2)
 
-# 動画ファイルのパス
-video_path1 = "video1.mp4"
-video_path2 = "video2.mp4"
-output_path = "synced_video.mp4"
+#TODO 動画ファイルのパス
+video_path1 = "/home/chenkaixu/Walk_Video_PyTorch/data/raw_data/ASD/20160523_1/full_lat.mp4"
+video_path2 = "v/home/chenkaixu/Walk_Video_PyTorch/data/raw_data/ASD/20160523_1/full_lat.mp4ideo2.mp4"
+output_path = "sync/synced_video.mp4"
 
 # 動画を同期
 sync_videos(video_path1, video_path2, output_path)
