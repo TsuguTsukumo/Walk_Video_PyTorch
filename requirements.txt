@@ -1,5 +1,5 @@
 
-sklearn
+scikit-learn
 
 # for summary the network structure
 torchinfo==1.7.0
@@ -14,3 +14,8 @@ pytorchvideo==0.1.5
 
 # some hook used in pytorch lightning
 lightning-bolts
+
+# for sync videos
+scipy
+moviepy
+pydub
