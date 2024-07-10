@@ -1,63 +1,61 @@
-#hello
+import moviepy.editor as mp
+import librosa
 import numpy as np
-from scipy.io import wavfile
-from scipy.signal import correlate
-from moviepy.editor import VideoFileClip, concatenate_videoclips, AudioFileClip
-from pydub import AudioSegment
-import tempfile
-import os
 
-def extract_audio(video_path):
-    video = VideoFileClip(video_path)
-    audio_path = tempfile.mktemp(suffix=".wav")
-    video.audio.write_audiofile(audio_path)
-    return audio_path
+def extract_audio(file_path):
+    video = mp.VideoFileClip(file_path)
+    audio = video.audio
+    audio_path = "temp_audio.wav"
+    audio.write_audiofile(audio_path)
+    y, sr = librosa.load(audio_path, sr=None)
+    return y, sr
 
-def get_audio_features(audio_path):
-    sample_rate, audio_data = wavfile.read(audio_path)
-    if audio_data.ndim > 1:
-        audio_data = audio_data.mean(axis=1)  # ステレオをモノラルに変換
-    return sample_rate, audio_data
+def compute_chroma(y, sr):
+    chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+    return chroma
 
-def calculate_offset(audio_data1, audio_data2):
-    correlation = correlate(audio_data1, audio_data2, mode='full')
-    offset = correlation.argmax() - (len(audio_data2) - 1)
-    return offset
+def compute_similarity(chroma1, chroma2, sr):
+    cross_similarity = librosa.segment.cross_similarity(chroma1, chroma2)
+    path, _ = librosa.sequence.dtw(C=1-cross_similarity, backtrack=True)
+    start_time_video1 = path[0, 0] * 512 / sr
+    start_time_video2 = path[0, 1] * 512 / sr
+    return start_time_video1, start_time_video2, path
 
-def sync_videos(video_path1, video_path2, output_path):
-    # 音声を抽出
-    audio_path1 = extract_audio(video_path1)
-    audio_path2 = extract_audio(video_path2)
+def sync_videos(video1_path, video2_path, output1_path, output2_path, output_mix_path):
+    y1, sr1 = extract_audio(video1_path)
+    y2, sr2 = extract_audio(video2_path)
 
-    # 音声特徴量を取得
-    sample_rate1, audio_data1 = get_audio_features(audio_path1)
-    sample_rate2, audio_data2 = get_audio_features(audio_path2)
+    chroma1 = compute_chroma(y1, sr1)
+    chroma2 = compute_chroma(y2, sr2)
 
-    # 音声のオフセットを計算
-    offset = calculate_offset(audio_data1, audio_data2)
+    start_time_video1, start_time_video2, path = compute_similarity(chroma1, chroma2, sr1)
 
-    # 動画クリップを読み込む
-    video1 = VideoFileClip(video_path1)
-    video2 = VideoFileClip(video_path2)
+    video1 = mp.VideoFileClip(video1_path)
+    video2 = mp.VideoFileClip(video2_path)
 
-    # オフセットに基づいて動画をトリム
-    if offset > 0:
-        video1 = video1.subclip(offset / sample_rate1)
-    else:
-        video2 = video2.subclip(-offset / sample_rate2)
+    # 動画の共通部分の期間を計算
+    common_start_time = max(start_time_video1, start_time_video2)
+    end_time_video1 = common_start_time + (video1.duration - (common_start_time - start_time_video1))
+    end_time_video2 = common_start_time + (video2.duration - (common_start_time - start_time_video2))
+    common_end_time = min(end_time_video1, end_time_video2)
 
-    # 同期した動画を結
-    final_clip = concatenate_videoclips([video1, video2])
-    final_clip.write_videofile(output_path, codec='libx264', audio_codec='aac')
+    if common_start_time >= video1.duration or common_start_time >= video2.duration:
+        raise ValueError("同期する部分が見つかりません")
 
-    # 一時ファイルを削除
-    os.remove(audio_path1)
-    os.remove(audio_path2)
+    video1 = video1.subclip(common_start_time - start_time_video1, common_end_time - start_time_video1)
+    video2 = video2.subclip(common_start_time - start_time_video2, common_end_time - start_time_video2)
 
-#TODO 動画ファイルのパス
-video_path1 = "/home/tsukumo/Walk_Video_PyTorch/data/ASD/20210518_1"
-video_path2 = "/home/tsukumo/Walk_Video_PyTorch/data/ASD/20210518_1/full_lat.mp4"
-output_path = "/home/tsukumo/Walk_Video_PyTorch/data/sync/test.mp4"
+    # 動画を上下に並べて新しい動画を作成
+    final_clip = mp.clips_array([[video1], [video2]])
 
-# 動画を同期
-sync_videos(video_path1, video_path2, output_path)
+    video1.write_videofile(output1_path, codec="libx264")
+    video2.write_videofile(output2_path, codec="libx264")
+    final_clip.write_videofile(output_mix_path, codec="libx264")
+
+# 動画のパスを指定して関数を呼び出します
+sync_videos("/home/tsukumo/Walk_Video_PyTorch/data/ASD/20210518_1/full_ap.mp4", 
+            "/home/tsukumo/Walk_Video_PyTorch/data/ASD/20210518_1/full_lat.mp4", 
+            "/home/tsukumo/Walk_Video_PyTorch/data/sync/test_ap.mp4", 
+            "/home/tsukumo/Walk_Video_PyTorch/data/sync/test_lat.mp4", 
+            "/home/tsukumo/Walk_Video_PyTorch/data/sync/test_mix.mp4")
+
