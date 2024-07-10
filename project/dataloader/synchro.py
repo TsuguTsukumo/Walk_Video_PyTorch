@@ -45,7 +45,7 @@ def sync_videos(video_path1, video_path2, output_path):
     else:
         video2 = video2.subclip(-offset / sample_rate2)
 
-    # 同期した動画を結合
+    # 同期した動画を結
     final_clip = concatenate_videoclips([video1, video2])
     final_clip.write_videofile(output_path, codec='libx264', audio_codec='aac')
 
