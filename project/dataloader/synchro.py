@@ -19,6 +19,8 @@ def compute_similarity(chroma1, chroma2, sr):
     path, _ = librosa.sequence.dtw(C=1-cross_similarity, backtrack=True)
     start_time_video1 = path[0, 0] * 512 / sr
     start_time_video2 = path[0, 1] * 512 / sr
+    print("start_time_video1:", start_time_video1)
+    print("start_time_video2:", start_time_video2)
     return start_time_video1, start_time_video2, path
 
 def sync_videos(video1_path, video2_path, output1_path, output2_path, output_mix_path):
